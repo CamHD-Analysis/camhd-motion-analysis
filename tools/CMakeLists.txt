@@ -4,7 +4,12 @@ include_directories(
 )
 
 # build image node
-add_executable(camhd_motrack MotionTrack.cpp )
-target_link_libraries( camhd_motrack
+add_executable(motrack MotionTrack.cpp )
+target_link_libraries( motrack
+						${OpenCV_LIBRARIES}
+		  			${Boost_LIBRARIES} )
+
+add_executable(motrack_gpu MotionTrackGpu.cpp )
+target_link_libraries( motrack_gpu
 						${OpenCV_LIBRARIES}
 		  			${Boost_LIBRARIES} )
