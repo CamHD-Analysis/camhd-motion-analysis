@@ -47,7 +47,9 @@ public:
 
 		if( _flowVideoPath.size() > 0 ) {
 			cout << "Saving flow video to " << _flowVideoPath.string() << endl;
-			_flowVideo.open( _flowVideoPath.string(), int(_capture.get(CV_CAP_PROP_FOURCC)), fps(), frameSize(), true  );
+			cv::Size sz( frameSize() );
+			_flowVideo.open( _flowVideoPath.string(), int(_capture.get(CV_CAP_PROP_FOURCC)), fps(),
+										Size( sz.width*2, sz.height ), true  );
 
 			if( !_flowVideo.isOpened() ) {
 				cerr << "Unabled to open output video " << _flowVideoPath.string() << ", aborting";
@@ -101,8 +103,12 @@ public:
 				double magMin, magMax = 1;
 				minMaxLoc( mag, &magMin, &magMax );
 
-				cvtColor( mag/magMax, magRoi, CV_GRAY2BGR );
-				cvtColor( angle / 2*M_PI, angleRoi, CV_GRAY2BGR );
+				Mat magInt, angInt;
+				mag.convertTo( magInt, CV_8UC1, 255.0/magMax );
+				angle.convertTo( angInt, CV_8UC1, 255.0/2*M_PI );
+
+				cvtColor( magInt, magRoi, CV_GRAY2BGR, 3 );
+				cvtColor( angInt, angleRoi, CV_GRAY2BGR, 3 );
 
 				if( _doDisplay) {
 					imshow("Magnitude", magRoi );
@@ -121,6 +127,7 @@ public:
 
 			prevGray = curGray;
 
+			cout << _capture.get( CV_CAP_PROP_POS_FRAMES ) << endl;
 
 			if( _stride > 1 ) {
 				for( auto i = 0; i < (_stride-1); ++i ) {
