@@ -15,7 +15,7 @@ endif(CCACHE_FOUND)
 
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-find_package(OpenCV 2.4 COMPONENTS core highgui imgproc calib3d REQUIRED)
+find_package(OpenCV 2.4 COMPONENTS core highgui imgproc video REQUIRED)
 find_package(Boost COMPONENTS filesystem REQUIRED)
 # find_package(Eigen3 REQUIRED)
 #find_package(ZLIB REQUIRED)
