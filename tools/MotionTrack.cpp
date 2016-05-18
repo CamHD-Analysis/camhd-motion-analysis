@@ -48,7 +48,7 @@ public:
 		if( _flowVideoPath.size() > 0 ) {
 			cout << "Saving flow video to " << _flowVideoPath.string() << endl;
 			cv::Size sz( frameSize() );
-			_flowVideo.open( _flowVideoPath.string(), int(_capture.get(CV_CAP_PROP_FOURCC)), fps(),
+			_flowVideo.open( _flowVideoPath.string(), int( _capture.get( CV_CAP_PROP_FOURCC )), fps(),
 										Size( sz.width*2, sz.height ), true  );
 
 			if( !_flowVideo.isOpened() ) {
@@ -122,7 +122,8 @@ public:
 			if( _doDisplay) {
 				imshow("MotionTracking", current );
 
-				waitKey( _waitKey );
+				char ch = waitKey( _waitKey );
+				if( ch == 'q' || ch == 'Q') return true;
 			}
 
 			prevGray = curGray;
@@ -179,7 +180,7 @@ int main( int argc, char ** argv )
 		TCLAP::SwitchArg doDisplayArg("x","display","Print name backwards", cmd, true);
 		TCLAP::ValueArg< int> waitKeyArg("","wait-key","Number of frames",false,-1,"Number of frames", cmd);
 
-		TCLAP::ValueArg<string> flowVideoOutput("","magnitude-video","",false,"","", cmd);
+		TCLAP::ValueArg<string> flowVideoOutput("","video-out","",false,"","", cmd);
 
 		TCLAP::UnlabeledValueArg<string> filenameArg("input-file", "Input file", true, "", "Input filename", cmd );
 
