@@ -47,7 +47,7 @@ public:
 			return false;
 		}
 
-		if( _flowVideoPath.size() > 0 ) {
+		if( !_flowVideoPath.empty() > 0 ) {
 			cout << "Saving flow video to " << _flowVideoPath.string() << endl;
 			cv::Size sz( frameSize() );
 			_flowVideo.open( _flowVideoPath.string(), int(_capture.get(CV_CAP_PROP_FOURCC)), fps(),
@@ -159,13 +159,20 @@ public:
 protected:
 
 	fs::path _inputFilePath, _flowVideoPath;
+
 	VideoCapture _capture;
-	VideoWriter _flowVideo;
+	gpu::VideoWriter_GPU _flowVideo;
+
 	unsigned int _stride, _skip;
 	bool _doDisplay;
 	int _waitKey;
 
 Ptr<DenseOpticalFlow> _opticalFlow;
+
+	GpuMat _current, _prevGrey;
+	GpuMat _composite;
+
+
 
 };
 
@@ -181,7 +188,7 @@ int main( int argc, char ** argv )
 		TCLAP::SwitchArg doDisplayArg("x","display","Print name backwards", cmd, true);
 		TCLAP::ValueArg< int> waitKeyArg("","wait-key","Number of frames",false,-1,"Number of frames", cmd);
 
-		TCLAP::ValueArg<string> flowVideoOutput("","magnitude-video","",false,"","", cmd);
+		TCLAP::ValueArg<string> flowVideoOutput("","flow-video","",false,"","", cmd);
 
 		TCLAP::UnlabeledValueArg<string> filenameArg("input-file", "Input file", true, "", "Input filename", cmd );
 
@@ -194,9 +201,9 @@ int main( int argc, char ** argv )
 			exit(-1);
 		}
 
-int id = gpu::getDevice();
-gpu::DeviceInfo info( id );
-cout << "Running on device \"" << info.name() << "\"" << endl;
+		int id = gpu::getDevice();
+		gpu::DeviceInfo info( id );
+		cout << "Running on device \"" << info.name() << "\"" << endl;
 
 		MotionTracking mt( inputFilePath );
 		mt.setSkip( skipArg.getValue() );

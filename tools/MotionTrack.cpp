@@ -45,14 +45,14 @@ public:
 			return false;
 		}
 
-		if( _flowVideoPath.size() > 0 ) {
+		if( !_flowVideoPath.empty() > 0 ) {
 			cout << "Saving flow video to " << _flowVideoPath.string() << endl;
 			cv::Size sz( frameSize() );
 			_flowVideo.open( _flowVideoPath.string(), int( _capture.get( CV_CAP_PROP_FOURCC )), fps(),
 										Size( sz.width*2, sz.height ), true  );
 
 			if( !_flowVideo.isOpened() ) {
-				cerr << "Unabled to open output video " << _flowVideoPath.string() << ", aborting";
+				cerr << "Unable to open output video " << _flowVideoPath.string() << ", aborting";
 				return false;
 			}
 		}
