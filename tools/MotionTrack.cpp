@@ -3,6 +3,8 @@
 #include <array>
 #include <memory>
 
+#include <fstream>
+
 #include <opencv2/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc.hpp>
@@ -56,6 +58,7 @@ public:
 			_outputScaleArg("","output-scale","Scale",false,1.0,"Scale",_cmd),
 			_blockSizeArg("","block-size","",false,16,"",_cmd),
 			_videoOutputArg("","video-out","",false,"","", _cmd),
+			_csvOutputArg("","csv-out","",false,"","", _cmd),
 			_videoInputArg("input-file", "Input file", true, "", "Input filename", _cmd )
 	{
 		parse( argc, argv );
@@ -132,6 +135,59 @@ protected:
 		TCLAP_ACCESSOR( string, videoOutput )
 		fs::path videoOutputPath( void ) { return _videoOutputArg.getValue(); }
 
+		TCLAP_ACCESSOR( string, csvOutput )
+		fs::path csvOutputPath( void ) { return _csvOutputArg.getValue(); }
+
+};
+
+
+class MotionTrackingCSV {
+public:
+	MotionTrackingCSV( fs::path filename )
+		: _filename( filename )
+	{
+			if( !_filename.empty() ) {
+				_out.open( _filename.string() );
+				writeHeader();
+			}
+	}
+
+	bool isOpened( void ) const
+	{
+		if( !_filename.empty() && _out.is_open() ) return true;
+		return false;
+	}
+
+	void writeHeader()
+	{
+		if( !isOpened() ) return;
+
+		_out << "# " << endl;
+
+	}
+
+	void write( unsigned int frameNum, std::array<cv::Mat,2>  &blockMeans, Vec2f &overallMean, float scale = 1.0 )
+	{
+		_out << frameNum << "," << overallMean[0]/scale << "," << overallMean[1]/scale;
+
+		for( Point p(0,0); p.y < blockMeans[0].rows; ++p.y) {
+			for( p.x = 0; p.x < blockMeans[0].cols; ++p.x ) {
+
+				float bmx = blockMeans[0].at<float>(p);
+				float bmy = blockMeans[1].at<float>(p);
+
+				_out << "," << bmx/scale << "," << bmy/scale;
+			}
+		}
+
+		_out << endl;
+
+	}
+
+protected:
+
+	fs::path _filename;
+	ofstream _out;
 };
 
 
@@ -140,6 +196,7 @@ class MotionTracking
 public:
 	MotionTracking( MotionTrackingConfig &conf )
 		: _conf( conf ),
+			_csv( conf.csvOutputPath() ),
 			_capture( conf.videoInput() ),
 			_writer(  ),
 			_opticalFlow( createOptFlow_DualTVL1() )
@@ -287,6 +344,7 @@ public:
 
 				// Overlay motion arrows
 				drawArrows( originalRoi, blockMeans, overallMean );
+				_csv.write( frameNum, blockMeans, overallMean, _conf.scale()/_conf.skip() );
 
 				if( _writer.get() )
 					_writer->write( composite );
@@ -298,7 +356,6 @@ public:
 					imshow("MotionTracking", originalRoi );
 
 					ch = waitKey( _conf.waitKey() );
-
 				}
 
 				if( checkKbd( ch ) ) break;
@@ -377,6 +434,7 @@ public:
 protected:
 
 	MotionTrackingConfig &_conf;
+	MotionTrackingCSV _csv;
 
 	VideoCapture _capture;
 	std::unique_ptr<VideoWriter> _writer;
