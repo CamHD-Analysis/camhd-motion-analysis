@@ -165,13 +165,13 @@ public:
 	{
 		if( !isOpened() ) return;
 
-		_out << "# " << endl;
+		_out << "# framenum,ms_per_frame,mean_x,mean_y" << endl;
 
 	}
 
-	void write( unsigned int frameNum, std::array<cv::Mat,2>  &blockMeans, Vec2f &overallMean, float scale = 1.0 )
+	void write( unsigned int frameNum, float dt, std::array<cv::Mat,2>  &blockMeans, Vec2f &overallMean, float scale = 1.0 )
 	{
-		_out << frameNum << "," << overallMean[0]/scale << "," << overallMean[1]/scale;
+		_out << frameNum << "," << dt << "," << overallMean[0]/scale << "," << overallMean[1]/scale;
 
 		for( Point p(0,0); p.y < blockMeans[0].rows; ++p.y) {
 			for( p.x = 0; p.x < blockMeans[0].cols; ++p.x ) {
@@ -286,9 +286,6 @@ public:
 		int frameNum = _capture.get( CV_CAP_PROP_POS_FRAMES );
 
 		Mat current, prevGray, scaled;
-
-		vector<  std::chrono::system_clock::duration > dts;
-
 		cout << "Press 'q' to interrupt (be sure an OpenCV window has focus)" << endl;
 
 		auto start = std::chrono::system_clock::now();
@@ -349,9 +346,16 @@ public:
 				}
 				resize(cropped, originalRoi, outputSz );
 
+
+
+				float meanDt = meanDts();
+				if( frameNum % 100 == 0 ){
+					cout << "Frame = " << frameNum << ";  ms/frame = " << meanDt << endl;
+				}
+
 				// Overlay motion arrows
 				drawArrows( originalRoi, blockMeans, overallMean );
-				_csv.write( frameNum, blockMeans, overallMean, _conf.scale()*_conf.skip() );
+				_csv.write( frameNum, meanDt, blockMeans, overallMean, _conf.scale()*_conf.stride() );
 
 				if( _writer.get() )
 					_writer->write( composite );
@@ -368,19 +372,14 @@ public:
 				if( checkKbd( ch ) ) break;
 			}
 
+			auto end = std::chrono::system_clock::now();
+			_dts.push_back( end-start );
+			start = std::chrono::system_clock::now();
+
+
+
 //			curGray.copyTo( prevGrey );
 			prevGray = curGray;
-
-			auto end = std::chrono::system_clock::now();
-			dts.push_back( end-start );
-
-			if( frameNum % 100 == 0 ){
-				auto meanDt = std::accumulate( dts.begin(), dts.end(), std::chrono::system_clock::duration(0) );
-
-				cout << frameNum << "  mean ms per frame " << std::chrono::duration_cast<std::chrono::milliseconds>(meanDt).count()/dts.size() << endl;
-			}
-
-			start = std::chrono::system_clock::now();
 
 			if( _conf.stride() > 1 ) {
 				for( auto i = 0; i < (_conf.stride()-1); ++i ) {
@@ -442,6 +441,11 @@ public:
 	double fps( void )
 	{ return _capture.get(CV_CAP_PROP_FPS); }
 
+	float meanDts( void )
+	{
+		auto sumDt = std::accumulate( _dts.begin(), _dts.end(), std::chrono::system_clock::duration(0) );
+		return std::chrono::duration_cast<std::chrono::milliseconds>(sumDt).count()/_dts.size();
+	}
 
 protected:
 
@@ -454,6 +458,9 @@ protected:
 	Ptr<DenseOpticalFlow> _opticalFlow;
 
 	cv::Rect _cropRect;
+
+	vector<  std::chrono::system_clock::duration > _dts;
+
 
 };
 
