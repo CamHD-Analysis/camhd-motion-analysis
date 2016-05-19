@@ -146,10 +146,13 @@ public:
 		}
 
 		float scale = _conf.scale();
+		float outScale = scale;
+		if( _conf.outputScaleSet() ) outScale = _conf.outputScale();
 
 		cv::Size sz( frameSize() );
 		cv::Size workingSz( sz.width*scale, sz.height*scale );
-		cv::Size compositeSz( 2*workingSz.width, workingSz.height );
+		cv::Size outputSz( sz.width*outScale, sz.height*outScale );
+		cv::Size compositeSz( 3*outputSz.width, outputSz.height );
 		cout << "Video frames are " << sz.width << " x " << sz.height << endl;
 		cout << "Video is " << frameCount() << " frames long" << endl;
 		cout << "    at " << fps() << " fps" << endl;
@@ -211,36 +214,39 @@ public:
 				cartToPolar( components[0], components[1], mag, angle );
 
 				Mat composite( compositeSz, CV_8UC3 );
-				Mat   magRoi( composite, cv::Rect(0,0, workingSz.width, workingSz.height ) ),
-						angleRoi( composite, cv::Rect( workingSz.width, 0, workingSz.width, workingSz.height ));
+				Mat   originalRoi( composite, cv::Rect(0,0, outputSz.width, outputSz.height ) ),
+						magRoi( composite, cv::Rect(outputSz.width,0, outputSz.width, outputSz.height ) ),
+						angleRoi( composite, cv::Rect( 2*outputSz.width, 0, outputSz.width, outputSz.height ));
 
 				double magMin = 0, magMax = 1;
-
-				minMaxLoc( angle, &magMin, &magMax );
-				cout << "Angle min: " << magMin << "  and max " << magMax << endl;
-
 				minMaxLoc( mag, &magMin, &magMax );
-				cout << "Mag max: " << magMax << endl;
 
 				// Normalize for display
 				Mat magInt, angInt;
 				mag.convertTo( magInt, CV_8UC1, 255.0/magMax );
 				angle.convertTo( angInt, CV_8UC1, 255.0/2*M_PI );
 
-				cvtColor( magInt, magRoi, CV_GRAY2BGR, 3 );
-				cvtColor( angInt, angleRoi, CV_GRAY2BGR, 3 );
+				if( _conf.outputScaleSet() ) {
+					Mat magBGR, angBGR;
+					cvtColor( magInt, magBGR, CV_GRAY2BGR );
+					cvtColor( angInt, angBGR, CV_GRAY2BGR );
 
-				if( _conf.doDisplay() ) {
-					imshow("Magnitude", magRoi );
-					imshow("Angle", angleRoi );
+					resize( magBGR, magRoi, outputSz );
+					resize( angBGR, angleRoi, outputSz );
+				} else {
+					cvtColor( magInt, magRoi, CV_GRAY2BGR );
+					cvtColor( angInt, angleRoi, CV_GRAY2BGR );
 				}
+				resize(current, originalRoi, outputSz );
 
 				if( _writer.get() )
 					_writer->write( composite );
 
 				char ch = 0;
 				if( _conf.doDisplay() ) {
-					imshow("MotionTracking", curGray );
+					imshow("Magnitude", magRoi );
+					imshow("Angle", angleRoi );
+					imshow("MotionTracking", originalRoi );
 
 					ch = waitKey( _conf.waitKey() );
 
