@@ -1,5 +1,6 @@
 #include <string>
 #include <vector>
+#include <array>
 #include <memory>
 
 #include <opencv2/core.hpp>
@@ -29,6 +30,17 @@ int kbhit()
     return FD_ISSET(STDIN_FILENO, &fds);
 }
 
+bool checkKbd( char ch = 0)
+{
+	if( ch == 0 && kbhit() ) {
+		char ch = fgetc(stdin);
+	}
+
+	if( ch == 'q' || ch == 'Q') return true;
+
+	return false;
+}
+
 
 class MotionTrackingConfig {
 public:
@@ -42,6 +54,7 @@ public:
 			_waitKeyArg("","wait-key","Number of frames",false,-1,"Number of frames", _cmd),
 			_scaleArg("","scale","Scale",false,1.0,"Scale",_cmd),
 			_outputScaleArg("","output-scale","Scale",false,1.0,"Scale",_cmd),
+			_blockSizeArg("","block-size","",false,16,"",_cmd),
 			_videoOutputArg("","video-out","",false,"","", _cmd),
 			_videoInputArg("input-file", "Input file", true, "", "Input filename", _cmd )
 	{
@@ -105,6 +118,8 @@ protected:
 		TCLAP_ACCESSOR( unsigned int, stride )
 		TCLAP_ACCESSOR( unsigned int, stop )
 
+		TCLAP_ACCESSOR( unsigned int, blockSize )
+
 		TCLAP_ACCESSOR( float, scale )
 		TCLAP_ACCESSOR( float, outputScale )
 
@@ -150,9 +165,29 @@ public:
 		if( _conf.outputScaleSet() ) outScale = _conf.outputScale();
 
 		cv::Size sz( frameSize() );
+		_cropRect = Rect( cv::Point(0,0), sz );
+
 		cv::Size workingSz( sz.width*scale, sz.height*scale );
-		cv::Size outputSz( sz.width*outScale, sz.height*outScale );
+		// Adjust workingSz for blockSize
+		if( workingSz.width % _conf.blockSize() != 0 ) {
+			workingSz.width = floor(workingSz.width / _conf.blockSize()) * _conf.blockSize();
+			_cropRect.width = floor(workingSz.width / scale);
+			_cropRect.x = round((sz.width - _cropRect.width)/2);
+
+			cout << "Adjusting working width to " << workingSz.width << " and image crop size to " << _cropRect.width << endl;
+		}
+		if( workingSz.height % _conf.blockSize() != 0 ) {
+			workingSz.height = floor(workingSz.height / _conf.blockSize()) * _conf.blockSize();
+			_cropRect.height = floor(workingSz.height / scale);
+			_cropRect.y = round((sz.height - _cropRect.height)/2);
+
+			cout << "Adjusting working height to " << workingSz.height << " and image crop size to " << _cropRect.height << endl;
+		}
+
+		cv::Size outputSz( _cropRect.size().width*outScale, _cropRect.size().height*outScale );
 		cv::Size compositeSz( 3*outputSz.width, outputSz.height );
+
+		cv::Size blockSz( workingSz.width / _conf.blockSize(), workingSz.height / _conf.blockSize() );
 		cout << "Video frames are " << sz.width << " x " << sz.height << endl;
 		cout << "Video is " << frameCount() << " frames long" << endl;
 		cout << "    at " << fps() << " fps" << endl;
@@ -190,15 +225,18 @@ public:
 
 		int frameNum = _capture.get( CV_CAP_PROP_POS_FRAMES );
 
-		Mat current, prevGray;
+		Mat current, prevGray, scaled;
+
+		cout << "Press 'q' to interrupt (be sure an OpenCV window has focus)" << endl;
 
 		while( _capture.read(current) ) {
 			// curGray must be inside the loop otherwise
 			// prevGray = curGray doesn't do anything...
-			Mat scaled, curGray, mag, angle;
+			Mat cropped( current, _cropRect );
+			Mat curGray, mag, angle;
 
 			if( _conf.scale() != 1.0 )
-				resize( current, scaled, workingSz );
+				resize( cropped, scaled, workingSz );
 			else
 				scaled = current;
 
@@ -213,6 +251,14 @@ public:
 
 				cartToPolar( components[0], components[1], mag, angle );
 
+				// Resizing by an integer divisor of components[] with INTER_AREA
+				// should be equivalent to block-averaging
+				std::array<cv::Mat,2> blockMeans;
+				resize( components[0], blockMeans[0], blockSz, INTER_AREA );
+				resize( components[1], blockMeans[1], blockSz, INTER_AREA );
+
+				Vec2f overallMean( mean( blockMeans[0])[0], mean( blockMeans[1])[0] );
+
 				Mat composite( compositeSz, CV_8UC3 );
 				Mat   originalRoi( composite, cv::Rect(0,0, outputSz.width, outputSz.height ) ),
 						magRoi( composite, cv::Rect(outputSz.width,0, outputSz.width, outputSz.height ) ),
@@ -224,7 +270,7 @@ public:
 				// Normalize for display
 				Mat magInt, angInt;
 				mag.convertTo( magInt, CV_8UC1, 255.0/magMax );
-				angle.convertTo( angInt, CV_8UC1, 255.0/2*M_PI );
+				angle.convertTo( angInt, CV_8UC1, 255.0/(2*M_PI) );
 
 				if( _conf.outputScaleSet() ) {
 					Mat magBGR, angBGR;
@@ -237,7 +283,10 @@ public:
 					cvtColor( magInt, magRoi, CV_GRAY2BGR );
 					cvtColor( angInt, angleRoi, CV_GRAY2BGR );
 				}
-				resize(current, originalRoi, outputSz );
+				resize(cropped, originalRoi, outputSz );
+
+				// Overlay motion arrows
+				drawArrows( originalRoi, blockMeans, overallMean );
 
 				if( _writer.get() )
 					_writer->write( composite );
@@ -250,13 +299,9 @@ public:
 
 					ch = waitKey( _conf.waitKey() );
 
-				} else {
-					if( kbhit() )  ch = fgetc(stdin);
 				}
 
-				if( ch == 'q' || ch == 'Q') {
-					break;
-				}
+				if( checkKbd( ch ) ) break;
 			}
 
 //			curGray.copyTo( prevGrey );
@@ -268,7 +313,9 @@ public:
 
 			if( _conf.stride() > 1 ) {
 				for( auto i = 0; i < (_conf.stride()-1); ++i ) {
-					if( !_capture.grab() ) break;
+					if( !_capture.grab() || checkKbd() ) break;
+
+
 				}
 			}
 
@@ -284,6 +331,35 @@ public:
 
 		return true;
 	}
+
+	void drawArrows( Mat &original, std::array<cv::Mat,2>  &blockMeans, Vec2f &overallMean )
+	{
+		float scale = _conf.outputScale() / _conf.scale();
+
+
+		for( Point p(0,0); p.y < blockMeans[0].rows; ++p.y) {
+			for( p.x = 0; p.x < blockMeans[0].cols; ++p.x ) {
+				// Compute block center
+				Point2f center( ((p.x+0.5)*_conf.blockSize()) * scale,
+											  ((p.y+0.5)*_conf.blockSize()) * scale );
+
+				float bmx = blockMeans[0].at<float>(p);
+				float bmy = blockMeans[1].at<float>(p);
+				Point2f offset( bmx * scale,
+											  bmy * scale );
+
+				arrowedLine( original, center, center+offset, cv::Scalar(0,0,255), 2 );
+
+			}
+		}
+
+		Point2f imgCenter( original.cols / 2, original.rows / 2 );
+		Point2f overall( overallMean[0] * scale, overallMean[1] * scale );
+
+		arrowedLine( original, imgCenter, imgCenter+overall, cv::Scalar(0,255,0), 4 );
+
+	}
+
 
 	cv::Size frameSize( void )
 	{
@@ -306,6 +382,8 @@ protected:
 	std::unique_ptr<VideoWriter> _writer;
 
 	Ptr<DenseOpticalFlow> _opticalFlow;
+
+	cv::Rect _cropRect;
 
 };
 
