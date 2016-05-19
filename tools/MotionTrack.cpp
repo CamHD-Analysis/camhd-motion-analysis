@@ -1,5 +1,6 @@
 #include <string>
 #include <vector>
+#include <memory>
 
 #include <opencv2/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -36,9 +37,11 @@ public:
 		: _cmd("Frame-by-frame motion tracking from CamHD files", ' ', ""),
 			_skipArg("","skip","Number of frames",false,0,"Number of frames", _cmd),
 			_strideArg("s","stride","Number of frames",false,10,"Number of frames", _cmd),
-			_doDisplayArg("x","display","Print name backwards", _cmd, false),
+			_stopArg("","stop","Stop at frame #",false,0,"Number of frames", _cmd),
+			_doDisplayArg("x","display","", _cmd, false ),
 			_waitKeyArg("","wait-key","Number of frames",false,-1,"Number of frames", _cmd),
 			_scaleArg("","scale","Scale",false,1.0,"Scale",_cmd),
+			_outputScaleArg("","output-scale","Scale",false,1.0,"Scale",_cmd),
 			_videoOutputArg("","video-out","",false,"","", _cmd),
 			_videoInputArg("input-file", "Input file", true, "", "Input filename", _cmd )
 	{
@@ -50,9 +53,9 @@ public:
 		try {
 			_cmd.parse( argc, argv );
 
-			_videoInputPath = _videoInputArg.getValue();
-			if( !fs::exists(_videoInputPath) || !fs::is_regular_file( _videoInputPath) ) {
-				cerr << "error: " << _videoInputPath.string() << " doesn't exist or isn't readable!" << endl;
+			fs::path inputPath( videoInputPath() );
+			if( !fs::exists(inputPath) || !fs::is_regular_file( inputPath) ) {
+				cerr << "error: " << videoInput() << " doesn't exist or isn't readable!" << endl;
 				exit(-1);
 			}
 
@@ -63,19 +66,6 @@ public:
 
 		_waitKey = _waitKeyArg.getValue();
 	}
-
-#define TCLAP_ACCESSOR( type, name ) type name( void ) { return _##name##Arg.getValue(); }
-
-	TCLAP_ACCESSOR( unsigned int, skip )
-	TCLAP_ACCESSOR( unsigned int, stride )
-	TCLAP_ACCESSOR( float, scale )
-	TCLAP_ACCESSOR( fs::path, videoOutput )
-	TCLAP_ACCESSOR( bool, doDisplay )
-
-
-	std::string inputFileString( void ) const { return _videoInputPath.string(); }
-
-	bool isVideoOutputSet( void ) const { return _videoOutputArg.isSet(); }
 
 	float updateWaitKey( float fps )
 	{
@@ -93,18 +83,40 @@ public:
 protected:
 
 	TCLAP::CmdLine _cmd;
-	TCLAP::ValueArg<unsigned int> _skipArg, _strideArg;
-	TCLAP::SwitchArg _doDisplayArg;
 	TCLAP::ValueArg<int> _waitKeyArg;
 	float _waitKey;
 
-	TCLAP::ValueArg<float> _scaleArg;
-
-
-	TCLAP::ValueArg<string> _videoOutputArg;
+	TCLAP::SwitchArg _doDisplayArg;
 	TCLAP::UnlabeledValueArg<string> _videoInputArg;
 
-	fs::path _videoInputPath;
+	#define AUTO_ACCESSOR( type, name ) \
+		public: \
+			type name( void ) { return _##name##Arg.getValue(); } \
+			bool name##Set( void ) { return _##name##Arg.isSet(); }
+
+	#define TCLAP_ACCESSOR( type, name ) \
+		protected: \
+			TCLAP::ValueArg<type> _##name##Arg; \
+		public: \
+			AUTO_ACCESSOR( type, name )
+
+
+		TCLAP_ACCESSOR( unsigned int, skip )
+		TCLAP_ACCESSOR( unsigned int, stride )
+		TCLAP_ACCESSOR( unsigned int, stop )
+
+		TCLAP_ACCESSOR( float, scale )
+		TCLAP_ACCESSOR( float, outputScale )
+
+
+		AUTO_ACCESSOR( bool, doDisplay )
+
+		AUTO_ACCESSOR( std::string, videoInput )
+		fs::path videoInputPath( void ) { return _videoInputArg.getValue(); }
+
+		TCLAP_ACCESSOR( string, videoOutput )
+		fs::path videoOutputPath( void ) { return _videoOutputArg.getValue(); }
+
 };
 
 
@@ -113,14 +125,16 @@ class MotionTracking
 public:
 	MotionTracking( MotionTrackingConfig &conf )
 		: _conf( conf ),
-			_capture( conf.inputFileString() ),
+			_capture( conf.videoInput() ),
+			_writer(  ),
 			_opticalFlow( createOptFlow_DualTVL1() )
 	{
-		cout << "Input file: " << conf.inputFileString() << endl;
+		cout << "Input file: " << conf.videoInput() << endl;
 }
 
 	~MotionTracking()
 	{
+		cout << "Closing video file." << endl;
 		if( _capture.isOpened() ) _capture.release();
 	}
 
@@ -133,46 +147,52 @@ public:
 
 		float scale = _conf.scale();
 
-		if( _conf.isVideoOutputSet()) {
+		cv::Size sz( frameSize() );
+		cv::Size workingSz( sz.width*scale, sz.height*scale );
+		cv::Size compositeSz( 2*workingSz.width, workingSz.height );
+		cout << "Video frames are " << sz.width << " x " << sz.height << endl;
+		cout << "Video is " << frameCount() << " frames long" << endl;
+		cout << "    at " << fps() << " fps" << endl;
+		cout << "Working size is " << workingSz.width << " x " << workingSz.height << endl;
+
+		if( _conf.videoOutputSet()) {
 			fs::path outputPath( _conf.videoOutput() );
 			cout << "Saving flow video to " << outputPath.string() << endl;
 			cv::Size sz( frameSize() );
 //int( _capture.get( CV_CAP_PROP_FOURCC ))
-			_flowVideo.open( outputPath.string(), CV_FOURCC('a','v','c','1'), fps(),
-										Size( sz.width*2, sz.height ), true  );
+			float fpsOut = fps()/10;
+			cout << " fpsOut: " << fpsOut << endl;
+			_writer.reset( new VideoWriter( outputPath.string(), CV_FOURCC('a','v','c','1'), fpsOut,
+										compositeSz, true  ) );
 
-			if( !_flowVideo.isOpened() ) {
+			if( !_writer->isOpened() ) {
 				cerr << "Unabled to open output video " << outputPath.string() << ", aborting";
 				return false;
 			}
 		}
 
 
-		cv::Size sz( frameSize() );
-		cv::Size workingSz( sz.width*scale, sz.height*scale );
-		cout << "Video frames are " << sz.width << " x " << sz.height << endl;
-		cout << "Video is " << frameCount() << " frames long" << endl;
-		cout << "    at " << fps() << " fps" << endl;
-		cout << "Working size is " << workingSz.width << " x " << workingSz.height << endl;
-
 		_conf.updateWaitKey( fps() );
 
 
 		if( _conf.skip() > 0 ) {
-			for( auto i = 0; i < _conf.skip(); ++i ) {
-				if( !_capture.grab() )  {
-					cerr << "Reached end of file while skipping." << endl;
-					return false;
-				}
-			}
+			_capture.set(CV_CAP_PROP_POS_FRAMES, _conf.skip() );
+			// for( auto i = 0; i < _conf.skip(); ++i ) {
+			// 	if( !_capture.grab() )  {
+			// 		cerr << "Reached end of file while skipping." << endl;
+			// 		return false;
+			// 	}
+			// }
 		}
 
 		int frameNum = _capture.get( CV_CAP_PROP_POS_FRAMES );
 
-		Mat current, scaled, prevGray, curGray;
-		Mat mag, angle;
+		Mat current, prevGray;
 
 		while( _capture.read(current) ) {
+			// curGray must be inside the loop otherwise
+			// prevGray = curGray doesn't do anything...
+			Mat scaled, curGray, mag, angle;
 
 			if( _conf.scale() != 1.0 )
 				resize( current, scaled, workingSz );
@@ -189,16 +209,20 @@ public:
 				split( flow, components );
 
 				cartToPolar( components[0], components[1], mag, angle );
-			}
 
-			if( !mag.empty() && (_flowVideo.isOpened() || _conf.doDisplay()) ) {
-				Mat composite( cv::Size(2*mag.cols, mag.rows), CV_8UC3 );
-				Mat magRoi( composite, cv::Rect(0,0, mag.cols, mag.rows ) ),
-						angleRoi( composite, cv::Rect( mag.cols, 0, angle.cols, angle.rows ));
+				Mat composite( compositeSz, CV_8UC3 );
+				Mat   magRoi( composite, cv::Rect(0,0, workingSz.width, workingSz.height ) ),
+						angleRoi( composite, cv::Rect( workingSz.width, 0, workingSz.width, workingSz.height ));
 
-				double magMin, magMax = 1;
+				double magMin = 0, magMax = 1;
+
+				minMaxLoc( angle, &magMin, &magMax );
+				cout << "Angle min: " << magMin << "  and max " << magMax << endl;
+
 				minMaxLoc( mag, &magMin, &magMax );
+				cout << "Mag max: " << magMax << endl;
 
+				// Normalize for display
 				Mat magInt, angInt;
 				mag.convertTo( magInt, CV_8UC1, 255.0/magMax );
 				angle.convertTo( angInt, CV_8UC1, 255.0/2*M_PI );
@@ -211,22 +235,25 @@ public:
 					imshow("Angle", angleRoi );
 				}
 
-				if( _flowVideo.isOpened() )
-					_flowVideo.write( composite );
-			}
+				if( _writer.get() )
+					_writer->write( composite );
 
-			if( _conf.doDisplay() ) {
-				imshow("MotionTracking", current );
+				char ch = 0;
+				if( _conf.doDisplay() ) {
+					imshow("MotionTracking", curGray );
 
-				char ch = waitKey( _conf.waitKey() );
-				if( ch == 'q' || ch == 'Q') return true;
-			} else {
-				if( kbhit() ) {
-					char ch = fgetc(stdin);
-					if( ch == 'q' || ch == 'Q') return true;
+					ch = waitKey( _conf.waitKey() );
+
+				} else {
+					if( kbhit() )  ch = fgetc(stdin);
+				}
+
+				if( ch == 'q' || ch == 'Q') {
+					break;
 				}
 			}
 
+//			curGray.copyTo( prevGrey );
 			prevGray = curGray;
 
 			if( frameNum % 100 == 0 ){
@@ -235,15 +262,19 @@ public:
 
 			if( _conf.stride() > 1 ) {
 				for( auto i = 0; i < (_conf.stride()-1); ++i ) {
-					if( !_capture.grab() ) return true;
+					if( !_capture.grab() ) break;
 				}
 			}
+
+			if( _conf.stopSet() && frameNum >= _conf.stop() ) break;
 
 			// Returns the number of the _next_ frame to be read
 		 frameNum = _capture.get( CV_CAP_PROP_POS_FRAMES );
 
 		}
 
+		cout << "Releasing writer" << endl;
+		_writer.release();
 
 		return true;
 	}
@@ -266,7 +297,7 @@ protected:
 	MotionTrackingConfig &_conf;
 
 	VideoCapture _capture;
-	VideoWriter _flowVideo;
+	std::unique_ptr<VideoWriter> _writer;
 
 	Ptr<DenseOpticalFlow> _opticalFlow;
 
