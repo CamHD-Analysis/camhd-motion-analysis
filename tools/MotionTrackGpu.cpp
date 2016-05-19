@@ -25,13 +25,12 @@ public:
 			_capture( inFile.string() ),
 			_stride(10), _skip(0),
 			_doDisplay( false ),
-			_waitKey(-1),
-			_opticalFlow( createOptFlow_DualTVL1() )
+			_waitKey(-1)
 	{}
 
 	~MotionTracking()
 	{
-		if( _capture.isOpened() ) _capture.release();
+		//if( _capture.isOpened() ) _capture.release();
 	}
 
 	unsigned int setStride( unsigned int c ) { return _stride=c;}
@@ -46,12 +45,12 @@ public:
 			cerr << "Unable to open video file.  Aborting." << endl;
 			return false;
 		}
+		_format = _capture.format();
 
 		if( !_flowVideoPath.empty() > 0 ) {
 			cout << "Saving flow video to " << _flowVideoPath.string() << endl;
 			cv::Size sz( frameSize() );
-			_flowVideo.open( _flowVideoPath.string(), int(_capture.get(CV_CAP_PROP_FOURCC)), fps(),
-										Size( sz.width*2, sz.height ), true  );
+			_flowVideo.open( _flowVideoPath.string(), Size( sz.width*2, sz.height ), fps(), gpu::VideoWriter_GPU::SF_BGR  );
 
 			if( !_flowVideo.isOpened() ) {
 				cerr << "Unabled to open output video " << _flowVideoPath.string() << ", aborting";
@@ -59,83 +58,63 @@ public:
 			}
 		}
 
-
 		cv::Size sz( frameSize() );
 		cout << "Video frames are " << sz.width << " x " << sz.height << endl;
-		cout << "Video is " << frameCount() << " frames long" << endl;
-		cout << "    at " << fps() << " fps" << endl;
 
-		if( _waitKey < 0 ) {
-			float f = fps();
-			if( f <= 0.0 ) f = 29.97;
-			_waitKey = 1000 * 1.0/f;
-		}
+		// Pre-allocate everything
+		gpu::GpuMat current( sz, CV_8UC3 ), curGrey( sz, CV_8UC1 ), prevGrey( sz, CV_8UC1 );
+		gpu::GpuMat composite( Size( sz.width*2, sz.height), CV_8UC3 );
+		gpu::GpuMat flowx( sz, CV_32F ), flowy( sz, CV_32F );
+		gpu::GpuMat mag( sz, CV_32F ), angle( sz, CV_32F );
+
+		gpu::GpuMat magInt( sz, CV_8UC1 ), angInt( sz, CV_8UC1 );
+
+		gpu::FarnebackOpticalFlow _opticalFlow;
+
 
 		if( _skip > 0 ) {
 			for( auto i = 0; i < _skip; ++i ) {
-				if( !_capture.grab() )  {
+				if( !_capture.read(current) )  {
 					cerr << "Reached end of file while skipping." << endl;
 					return false;
 				}
 			}
 		}
 
-		Mat current, prevGray;
+		int frameNum = _skip;
 		while( _capture.read(current) ) {
 
-			Mat curGray, mag, angle;
+			gpu::cvtColor( current, curGrey, CV_BGR2GRAY );
 
-			cvtColor( current, curGray, CV_BGR2GRAY );
+			if( frameNum > _skip ) {
+				_opticalFlow( curGrey, prevGrey, flowx, flowy );
+				gpu::cartToPolar( flowx, flowy, mag, angle );
 
-			if( !prevGray.empty() ) {
-				Mat flow;
-				_opticalFlow->calc( prevGray, curGray, flow );
-
-				std::vector<cv::Mat> components(2);
-				split( flow, components );
-
-				cartToPolar( components[0], components[1], mag, angle );
-			}
-
-			if( !mag.empty() && (_flowVideo.isOpened() || _doDisplay) ) {
-				Mat composite( cv::Size(2*mag.cols, mag.rows), CV_8UC3 );
-				Mat magRoi( composite, cv::Rect(0,0, mag.cols, mag.rows ) ),
-						angleRoi( composite, cv::Rect( mag.cols, 0, angle.cols, angle.rows ));
+				gpu::GpuMat magRoi( composite, cv::Rect(0,0, sz.width, sz.height ) ),
+						   angleRoi( composite, cv::Rect( sz.width, 0, sz.width, sz.height ));
 
 				double magMin, magMax = 1;
-				minMaxLoc( mag, &magMin, &magMax );
+				gpu::minMaxLoc( mag, &magMin, &magMax );
 
-				Mat magInt, angInt;
 				mag.convertTo( magInt, CV_8UC1, 255.0/magMax );
 				angle.convertTo( angInt, CV_8UC1, 255.0/2*M_PI );
 
-				cvtColor( magInt, magRoi, CV_GRAY2BGR, 3 );
-				cvtColor( angInt, angleRoi, CV_GRAY2BGR, 3 );
+				gpu::cvtColor( magInt, magRoi, CV_GRAY2BGR, 3 );
+				gpu::cvtColor( angInt, angleRoi, CV_GRAY2BGR, 3 );
 
-				if( _doDisplay) {
-					imshow("Magnitude", magRoi );
-					imshow("Angle", angleRoi );
-				}
 
-				if( _flowVideo.isOpened() )
-					_flowVideo << composite;
+				_flowVideo.write( composite );
 			}
 
-			if( _doDisplay) {
-				imshow("MotionTracking", current );
-
-				waitKey( _waitKey );
-			}
-
-			prevGray = curGray;
-
-			cout << _capture.get( CV_CAP_PROP_POS_FRAMES ) << endl;
+			prevGrey = curGrey;
 
 			if( _stride > 1 ) {
 				for( auto i = 0; i < (_stride-1); ++i ) {
-					if( !_capture.grab() ) return true;
+					if( !_capture.read(current) ) return true;
 				}
 			}
+
+			++frameNum;
 		}
 
 
@@ -144,15 +123,14 @@ public:
 
 	cv::Size frameSize( void )
 	{
-		return cv::Size( _capture.get(CV_CAP_PROP_FRAME_WIDTH),
-										_capture.get(CV_CAP_PROP_FRAME_HEIGHT) );
+		return cv::Size( _format.width, _format.height );
 	}
 
 	double frameCount( void )
-	{ return _capture.get(CV_CAP_PROP_FRAME_COUNT); }
+	{ return -1; }
 
 	double fps( void )
-	{ return _capture.get(CV_CAP_PROP_FPS); }
+	{ return 29.97; }
 
 
 
@@ -160,17 +138,17 @@ protected:
 
 	fs::path _inputFilePath, _flowVideoPath;
 
-	VideoCapture _capture;
+	gpu::VideoReader_GPU _capture;
+	gpu::VideoReader_GPU::FormatInfo _format;
 	gpu::VideoWriter_GPU _flowVideo;
 
 	unsigned int _stride, _skip;
 	bool _doDisplay;
 	int _waitKey;
 
-Ptr<DenseOpticalFlow> _opticalFlow;
+//Ptr<DenseOpticalFlow> _opticalFlow;
 
-	GpuMat _current, _prevGrey;
-	GpuMat _composite;
+
 
 
 
@@ -185,10 +163,10 @@ int main( int argc, char ** argv )
 
 		TCLAP::ValueArg<unsigned int> skipArg("","skip","Number of frames",false,0,"Number of frames", cmd);
 		TCLAP::ValueArg<unsigned int> strideArg("s","stride","Number of frames",false,10,"Number of frames", cmd);
-		TCLAP::SwitchArg doDisplayArg("x","display","Print name backwards", cmd, true);
+		TCLAP::SwitchArg doDisplayArg("x","display","Print name backwards", cmd, false);
 		TCLAP::ValueArg< int> waitKeyArg("","wait-key","Number of frames",false,-1,"Number of frames", cmd);
 
-		TCLAP::ValueArg<string> flowVideoOutput("","flow-video","",false,"","", cmd);
+		TCLAP::ValueArg<string> flowVideoOutput("","video-out","",false,"","", cmd);
 
 		TCLAP::UnlabeledValueArg<string> filenameArg("input-file", "Input file", true, "", "Input filename", cmd );
 

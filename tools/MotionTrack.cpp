@@ -14,6 +14,19 @@ namespace fs = boost::filesystem;
 using namespace std;
 using namespace cv;
 
+// See: http://cc.byexamples.com/2007/04/08/non-blocking-user-input-in-loop-without-ncurses/
+int kbhit()
+{
+    struct timeval tv;
+    fd_set fds;
+    tv.tv_sec = 0;
+    tv.tv_usec = 0;
+    FD_ZERO(&fds);
+    FD_SET(STDIN_FILENO, &fds); //STDIN_FILENO is 0
+    select(STDIN_FILENO+1, &fds, NULL, NULL, &tv);
+    return FD_ISSET(STDIN_FILENO, &fds);
+}
+
 class MotionTracking
 {
 public:
@@ -48,11 +61,11 @@ public:
 		if( !_flowVideoPath.empty() > 0 ) {
 			cout << "Saving flow video to " << _flowVideoPath.string() << endl;
 			cv::Size sz( frameSize() );
-			_flowVideo.open( _flowVideoPath.string(), int( _capture.get( CV_CAP_PROP_FOURCC )), fps(),
+			_flowVideo.open( _flowVideoPath.string(), CV_FOURCC('H','2','6','4'), fps(),
 										Size( sz.width*2, sz.height ), true  );
 
 			if( !_flowVideo.isOpened() ) {
-				cerr << "Unable to open output video " << _flowVideoPath.string() << ", aborting";
+				cerr << "Unable to open output video " << _flowVideoPath.string() << ", aborting" << endl;
 				return false;
 			}
 		}
@@ -77,6 +90,8 @@ public:
 				}
 			}
 		}
+
+		int frameNum = _capture.get( CV_CAP_PROP_POS_FRAMES );
 
 		Mat current, prevGray;
 		while( _capture.read(current) ) {
@@ -124,17 +139,27 @@ public:
 
 				char ch = waitKey( _waitKey );
 				if( ch == 'q' || ch == 'Q') return true;
+			} else {
+				if( kbhit() ) {
+					char ch = fgetc(stdin);
+					if( ch == 'q' || ch == 'Q') return true;
+				}
 			}
 
 			prevGray = curGray;
 
-			cout << _capture.get( CV_CAP_PROP_POS_FRAMES ) << endl;
+		if( frameNum % 100 == 0 )
+			cout << frameNum << endl;
 
 			if( _stride > 1 ) {
 				for( auto i = 0; i < (_stride-1); ++i ) {
 					if( !_capture.grab() ) return true;
 				}
 			}
+
+			// Returns the number of the _next_ frame to be read
+		 frameNum = _capture.get( CV_CAP_PROP_POS_FRAMES );
+
 		}
 
 
@@ -177,7 +202,7 @@ int main( int argc, char ** argv )
 
 		TCLAP::ValueArg<unsigned int> skipArg("","skip","Number of frames",false,0,"Number of frames", cmd);
 		TCLAP::ValueArg<unsigned int> strideArg("s","stride","Number of frames",false,10,"Number of frames", cmd);
-		TCLAP::SwitchArg doDisplayArg("x","display","Print name backwards", cmd, true);
+		TCLAP::SwitchArg doDisplayArg("x","display","Print name backwards", cmd, false);
 		TCLAP::ValueArg< int> waitKeyArg("","wait-key","Number of frames",false,-1,"Number of frames", cmd);
 
 		TCLAP::ValueArg<string> flowVideoOutput("","video-out","",false,"","", cmd);
