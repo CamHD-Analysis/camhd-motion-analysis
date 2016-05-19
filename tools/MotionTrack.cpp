@@ -14,29 +14,101 @@ namespace fs = boost::filesystem;
 using namespace std;
 using namespace cv;
 
+class MotionTrackingConfig {
+public:
+
+	MotionTrackingConfig( int argc, char **argv )
+		: _cmd("Frame-by-frame motion tracking from CamHD files", ' ', ""),
+			_skipArg("","skip","Number of frames",false,0,"Number of frames", _cmd),
+			_strideArg("s","stride","Number of frames",false,10,"Number of frames", _cmd),
+			_doDisplayArg("x","display","Print name backwards", _cmd, true),
+			_waitKeyArg("","wait-key","Number of frames",false,-1,"Number of frames", _cmd),
+			_scaleArg("","scale","Scale",false,1.0,"Scale",_cmd),
+			_videoOutputArg("","video-out","",false,"","", _cmd),
+			_videoInputArg("input-file", "Input file", true, "", "Input filename", _cmd )
+	{
+		parse( argc, argv );
+	}
+
+	void parse( int argc, char **argv )
+	{
+		try {
+			_cmd.parse( argc, argv );
+
+			_videoInputPath = _videoInputArg.getValue();
+			if( !fs::exists(_videoInputPath) || !fs::is_regular_file( _videoInputPath) ) {
+				cerr << "error: " << _videoInputPath.string() << " doesn't exist or isn't readable!" << endl;
+				exit(-1);
+			}
+
+		} catch (TCLAP::ArgException &e)  // catch any exceptions
+		{
+			cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
+		}
+
+		_waitKey = _waitKeyArg.getValue();
+	}
+
+#define TCLAP_ACCESSOR( type, name ) type name( void ) { return _##name##Arg.getValue(); }
+
+	TCLAP_ACCESSOR( unsigned int, skip )
+	TCLAP_ACCESSOR( unsigned int, stride )
+	TCLAP_ACCESSOR( float, scale )
+	TCLAP_ACCESSOR( fs::path, videoOutput )
+	TCLAP_ACCESSOR( bool, doDisplay )
+
+
+	std::string inputFileString( void ) const { return _videoInputPath.string(); }
+
+	bool isVideoOutputSet( void ) const { return _videoOutputArg.isSet(); }
+
+	float updateWaitKey( float fps )
+	{
+		if( _waitKey < 0 ) {
+			if( fps <= 0.0 ) fps = 29.97;
+			_waitKey = 1000.0/fps;
+		}
+
+		return _waitKey;
+	};
+
+	float waitKey( void ) const { return _waitKey; }
+
+
+protected:
+
+	TCLAP::CmdLine _cmd;
+	TCLAP::ValueArg<unsigned int> _skipArg, _strideArg;
+	TCLAP::SwitchArg _doDisplayArg;
+	TCLAP::ValueArg<int> _waitKeyArg;
+	float _waitKey;
+
+	TCLAP::ValueArg<float> _scaleArg;
+
+
+	TCLAP::ValueArg<string> _videoOutputArg;
+	TCLAP::UnlabeledValueArg<string> _videoInputArg;
+
+	fs::path _videoInputPath;
+
+
+};
+
 class MotionTracking
 {
 public:
-	MotionTracking( const fs::path &inFile )
-		: _inputFilePath( inFile ),
-			_flowVideoPath(),
-			_capture( inFile.string() ),
-			_stride(10), _skip(0),
-			_doDisplay( false ),
-			_waitKey(-1),
+	MotionTracking( MotionTrackingConfig &conf )
+		: _conf( conf ),
+			_capture( conf.inputFileString() ),
 			_opticalFlow( createOptFlow_DualTVL1() )
-	{}
+	{
+		cout << "Input file: " << conf.inputFileString() << endl;
+}
 
 	~MotionTracking()
 	{
 		if( _capture.isOpened() ) _capture.release();
 	}
-
-	unsigned int setStride( unsigned int c ) { return _stride=c;}
-	unsigned int setSkip( unsigned int c ) { return _skip=c; }
-	bool setDoDisplay( bool d ) { return _doDisplay=d; }
-	int setWait( int w ) { return _waitKey = w; }
-	void setFlowVideoOutput( const fs::path &p ) { _flowVideoPath = p; }
 
 	bool operator()( void )
 	{
@@ -45,32 +117,35 @@ public:
 			return false;
 		}
 
-		if( _flowVideoPath.size() > 0 ) {
-			cout << "Saving flow video to " << _flowVideoPath.string() << endl;
+		float scale = _conf.scale();
+
+		if( _conf.isVideoOutputSet()) {
+			fs::path outputPath( _conf.videoOutput() );
+			cout << "Saving flow video to " << outputPath.string() << endl;
 			cv::Size sz( frameSize() );
-			_flowVideo.open( _flowVideoPath.string(), int( _capture.get( CV_CAP_PROP_FOURCC )), fps(),
+//int( _capture.get( CV_CAP_PROP_FOURCC ))
+			_flowVideo.open( outputPath.string(), CV_FOURCC('a','v','c','1'), fps(),
 										Size( sz.width*2, sz.height ), true  );
 
 			if( !_flowVideo.isOpened() ) {
-				cerr << "Unabled to open output video " << _flowVideoPath.string() << ", aborting";
+				cerr << "Unabled to open output video " << outputPath.string() << ", aborting";
 				return false;
 			}
 		}
 
 
 		cv::Size sz( frameSize() );
+		cv::Size workingSz( sz.width*scale, sz.height*scale );
 		cout << "Video frames are " << sz.width << " x " << sz.height << endl;
 		cout << "Video is " << frameCount() << " frames long" << endl;
 		cout << "    at " << fps() << " fps" << endl;
+		cout << "Working size is " << workingSz.width << " x " << workingSz.height << endl;
 
-		if( _waitKey < 0 ) {
-			float f = fps();
-			if( f <= 0.0 ) f = 29.97;
-			_waitKey = 1000 * 1.0/f;
-		}
+		_conf.updateWaitKey( fps() );
 
-		if( _skip > 0 ) {
-			for( auto i = 0; i < _skip; ++i ) {
+
+		if( _conf.skip() > 0 ) {
+			for( auto i = 0; i < _conf.skip(); ++i ) {
 				if( !_capture.grab() )  {
 					cerr << "Reached end of file while skipping." << endl;
 					return false;
@@ -78,12 +153,18 @@ public:
 			}
 		}
 
-		Mat current, prevGray;
+		Mat current, scaled, prevGray;
+		Mat curGray, mag, angle;
+
 		while( _capture.read(current) ) {
 
-			Mat curGray, mag, angle;
 
-			cvtColor( current, curGray, CV_BGR2GRAY );
+			if( _conf.scale() != 1.0 )
+				resize( current, scaled, workingSz );
+			else
+				scaled = current;
+
+			cvtColor( scaled, curGray, CV_BGR2GRAY );
 
 			if( !prevGray.empty() ) {
 				Mat flow;
@@ -95,7 +176,7 @@ public:
 				cartToPolar( components[0], components[1], mag, angle );
 			}
 
-			if( !mag.empty() && (_flowVideo.isOpened() || _doDisplay) ) {
+			if( !mag.empty() && (_flowVideo.isOpened() || _conf.doDisplay()) ) {
 				Mat composite( cv::Size(2*mag.cols, mag.rows), CV_8UC3 );
 				Mat magRoi( composite, cv::Rect(0,0, mag.cols, mag.rows ) ),
 						angleRoi( composite, cv::Rect( mag.cols, 0, angle.cols, angle.rows ));
@@ -110,19 +191,19 @@ public:
 				cvtColor( magInt, magRoi, CV_GRAY2BGR, 3 );
 				cvtColor( angInt, angleRoi, CV_GRAY2BGR, 3 );
 
-				if( _doDisplay) {
+				if( _conf.doDisplay() ) {
 					imshow("Magnitude", magRoi );
 					imshow("Angle", angleRoi );
 				}
 
 				if( _flowVideo.isOpened() )
-					_flowVideo << composite;
+					_flowVideo.write( composite );
 			}
 
-			if( _doDisplay) {
+			if( _conf.doDisplay() ) {
 				imshow("MotionTracking", current );
 
-				char ch = waitKey( _waitKey );
+				char ch = waitKey( _conf.waitKey() );
 				if( ch == 'q' || ch == 'Q') return true;
 			}
 
@@ -130,8 +211,8 @@ public:
 
 			cout << _capture.get( CV_CAP_PROP_POS_FRAMES ) << endl;
 
-			if( _stride > 1 ) {
-				for( auto i = 0; i < (_stride-1); ++i ) {
+			if( _conf.stride() > 1 ) {
+				for( auto i = 0; i < (_conf.stride()-1); ++i ) {
 					if( !_capture.grab() ) return true;
 				}
 			}
@@ -157,12 +238,11 @@ public:
 
 protected:
 
-	fs::path _inputFilePath, _flowVideoPath;
+ MotionTrackingConfig &_conf;
+
 	VideoCapture _capture;
 	VideoWriter _flowVideo;
-	unsigned int _stride, _skip;
-	bool _doDisplay;
-	int _waitKey;
+
 
 Ptr<DenseOpticalFlow> _opticalFlow;
 
@@ -171,43 +251,10 @@ Ptr<DenseOpticalFlow> _opticalFlow;
 
 int main( int argc, char ** argv )
 {
+	MotionTrackingConfig config( argc, argv );
 
-	try {
-		TCLAP::CmdLine cmd("Frame-by-frame motion tracking from CamHD files", ' ', "");
-
-		TCLAP::ValueArg<unsigned int> skipArg("","skip","Number of frames",false,0,"Number of frames", cmd);
-		TCLAP::ValueArg<unsigned int> strideArg("s","stride","Number of frames",false,10,"Number of frames", cmd);
-		TCLAP::SwitchArg doDisplayArg("x","display","Print name backwards", cmd, true);
-		TCLAP::ValueArg< int> waitKeyArg("","wait-key","Number of frames",false,-1,"Number of frames", cmd);
-
-		TCLAP::ValueArg<string> flowVideoOutput("","video-out","",false,"","", cmd);
-
-		TCLAP::UnlabeledValueArg<string> filenameArg("input-file", "Input file", true, "", "Input filename", cmd );
-
-		// Parse the argv array.
-		cmd.parse( argc, argv );
-
-		fs::path inputFilePath( filenameArg.getValue() );
-		if( !fs::exists(inputFilePath) || !fs::is_regular_file( inputFilePath) ) {
-			cerr << "error: " << inputFilePath.string() << " doesn't exist or isn't readable!" << endl;
-			exit(-1);
-		}
-
-		MotionTracking mt( inputFilePath );
-		mt.setSkip( skipArg.getValue() );
-		mt.setStride( strideArg.getValue() );
-		mt.setDoDisplay( doDisplayArg.getValue() );
-		mt.setWait( waitKeyArg.getValue() );
-		mt.setFlowVideoOutput( flowVideoOutput.getValue() );
-		mt();
-
-
-	} catch (TCLAP::ArgException &e)  // catch any exceptions
-	{
-		cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
-	}
-
-
+	MotionTracking mt( config );
+	mt();
 
 	exit(0);
 }
