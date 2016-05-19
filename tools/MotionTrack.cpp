@@ -344,7 +344,7 @@ public:
 
 				// Overlay motion arrows
 				drawArrows( originalRoi, blockMeans, overallMean );
-				_csv.write( frameNum, blockMeans, overallMean, _conf.scale()/_conf.skip() );
+				_csv.write( frameNum, blockMeans, overallMean, _conf.scale()*_conf.skip() );
 
 				if( _writer.get() )
 					_writer->write( composite );
