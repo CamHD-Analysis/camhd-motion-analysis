@@ -24,9 +24,6 @@ endif()
 
 find_package(OpenCV 2.4 COMPONENTS ${OPENCV_COMPONENTS} REQUIRED)
 find_package(Boost COMPONENTS filesystem system REQUIRED)
-# find_package(Eigen3 REQUIRED)
-#find_package(ZLIB REQUIRED)
-
 find_package(TCLAP REQUIRED )
 
 ## C++ flags applied to all builds
