@@ -13,10 +13,17 @@ if(CCACHE_FOUND)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif(CCACHE_FOUND)
 
-
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-find_package(OpenCV 2.4 COMPONENTS core highgui imgproc video REQUIRED)
-find_package(Boost COMPONENTS filesystem REQUIRED)
+list(APPEND OPENCV_COMPONENTS core highgui imgproc video)
+
+option(USE_GPU "Build GPU-accelerated tools" OFF)
+if( USE_GPU )
+	add_definitions( -DUSE_GPU )
+	list(APPEND OPENCV_COMPONENTS gpu )
+endif()
+
+find_package(OpenCV 2.4 COMPONENTS ${OPENCV_COMPONENTS} REQUIRED)
+find_package(Boost COMPONENTS filesystem system REQUIRED)
 # find_package(Eigen3 REQUIRED)
 #find_package(ZLIB REQUIRED)
 

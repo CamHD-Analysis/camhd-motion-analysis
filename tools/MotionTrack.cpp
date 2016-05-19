@@ -14,6 +14,21 @@ namespace fs = boost::filesystem;
 using namespace std;
 using namespace cv;
 
+
+// See: http://cc.byexamples.com/2007/04/08/non-blocking-user-input-in-loop-without-ncurses/
+int kbhit()
+{
+    struct timeval tv;
+    fd_set fds;
+    tv.tv_sec = 0;
+    tv.tv_usec = 0;
+    FD_ZERO(&fds);
+    FD_SET(STDIN_FILENO, &fds); //STDIN_FILENO is 0
+    select(STDIN_FILENO+1, &fds, NULL, NULL, &tv);
+    return FD_ISSET(STDIN_FILENO, &fds);
+}
+
+
 class MotionTrackingConfig {
 public:
 
@@ -21,7 +36,7 @@ public:
 		: _cmd("Frame-by-frame motion tracking from CamHD files", ' ', ""),
 			_skipArg("","skip","Number of frames",false,0,"Number of frames", _cmd),
 			_strideArg("s","stride","Number of frames",false,10,"Number of frames", _cmd),
-			_doDisplayArg("x","display","Print name backwards", _cmd, true),
+			_doDisplayArg("x","display","Print name backwards", _cmd, false),
 			_waitKeyArg("","wait-key","Number of frames",false,-1,"Number of frames", _cmd),
 			_scaleArg("","scale","Scale",false,1.0,"Scale",_cmd),
 			_videoOutputArg("","video-out","",false,"","", _cmd),
@@ -90,9 +105,8 @@ protected:
 	TCLAP::UnlabeledValueArg<string> _videoInputArg;
 
 	fs::path _videoInputPath;
-
-
 };
+
 
 class MotionTracking
 {
@@ -153,11 +167,12 @@ public:
 			}
 		}
 
-		Mat current, scaled, prevGray;
-		Mat curGray, mag, angle;
+		int frameNum = _capture.get( CV_CAP_PROP_POS_FRAMES );
+
+		Mat current, scaled, prevGray, curGray;
+		Mat mag, angle;
 
 		while( _capture.read(current) ) {
-
 
 			if( _conf.scale() != 1.0 )
 				resize( current, scaled, workingSz );
@@ -205,17 +220,28 @@ public:
 
 				char ch = waitKey( _conf.waitKey() );
 				if( ch == 'q' || ch == 'Q') return true;
+			} else {
+				if( kbhit() ) {
+					char ch = fgetc(stdin);
+					if( ch == 'q' || ch == 'Q') return true;
+				}
 			}
 
 			prevGray = curGray;
 
-			cout << _capture.get( CV_CAP_PROP_POS_FRAMES ) << endl;
+			if( frameNum % 100 == 0 ){
+				cout << frameNum << endl;
+			}
 
 			if( _conf.stride() > 1 ) {
 				for( auto i = 0; i < (_conf.stride()-1); ++i ) {
 					if( !_capture.grab() ) return true;
 				}
 			}
+
+			// Returns the number of the _next_ frame to be read
+		 frameNum = _capture.get( CV_CAP_PROP_POS_FRAMES );
+
 		}
 
 
@@ -235,16 +261,14 @@ public:
 	{ return _capture.get(CV_CAP_PROP_FPS); }
 
 
-
 protected:
 
- MotionTrackingConfig &_conf;
+	MotionTrackingConfig &_conf;
 
 	VideoCapture _capture;
 	VideoWriter _flowVideo;
 
-
-Ptr<DenseOpticalFlow> _opticalFlow;
+	Ptr<DenseOpticalFlow> _opticalFlow;
 
 };
 

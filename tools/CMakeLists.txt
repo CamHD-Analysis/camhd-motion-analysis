@@ -9,7 +9,9 @@ target_link_libraries( motrack
 						${OpenCV_LIBRARIES}
 		  			${Boost_LIBRARIES} )
 
-add_executable(motrack_gpu MotionTrackGpu.cpp )
-target_link_libraries( motrack_gpu
-						${OpenCV_LIBRARIES}
-		  			${Boost_LIBRARIES} )
+if( USE_GPU )
+	add_executable(motrack_gpu MotionTrackGpu.cpp )
+	target_link_libraries( motrack_gpu
+							${OpenCV_LIBRARIES}
+			  			${Boost_LIBRARIES} )
+endif()
