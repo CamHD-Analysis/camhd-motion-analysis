@@ -3,6 +3,9 @@
 #include <array>
 #include <memory>
 
+#include <chrono>
+#include <numeric>
+
 #include <fstream>
 
 #include <opencv2/core.hpp>
@@ -284,7 +287,11 @@ public:
 
 		Mat current, prevGray, scaled;
 
+		vector<  std::chrono::system_clock::duration > dts;
+
 		cout << "Press 'q' to interrupt (be sure an OpenCV window has focus)" << endl;
+
+		auto start = std::chrono::system_clock::now();
 
 		while( _capture.read(current) ) {
 			// curGray must be inside the loop otherwise
@@ -364,15 +371,20 @@ public:
 //			curGray.copyTo( prevGrey );
 			prevGray = curGray;
 
+			auto end = std::chrono::system_clock::now();
+			dts.push_back( end-start );
+
 			if( frameNum % 100 == 0 ){
-				cout << frameNum << endl;
+				auto meanDt = std::accumulate( dts.begin(), dts.end(), std::chrono::system_clock::duration(0) );
+
+				cout << frameNum << "  mean ms per frame " << std::chrono::duration_cast<std::chrono::milliseconds>(meanDt).count()/dts.size() << endl;
 			}
+
+			start = std::chrono::system_clock::now();
 
 			if( _conf.stride() > 1 ) {
 				for( auto i = 0; i < (_conf.stride()-1); ++i ) {
 					if( !_capture.grab() || checkKbd() ) break;
-
-
 				}
 			}
 
