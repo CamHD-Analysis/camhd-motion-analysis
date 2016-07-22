@@ -13,13 +13,14 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/video.hpp>
 
-#include "MotionTrack/config.h"
-#include "MotionTrack/csv_writer.h"
+#include <boost/filesystem.hpp>
+#include <tclap/CmdLine.h>
+
+namespace fs = boost::filesystem;
 
 using namespace std;
 using namespace cv;
 
-using namespace CamHD_MotionTracking;
 
 // See: http://cc.byexamples.com/2007/04/08/non-blocking-user-input-in-loop-without-ncurses/
 int kbhit()
@@ -46,10 +47,157 @@ bool checkKbd( char ch = 0)
 }
 
 
+class MotionTrackingConfig {
+public:
+
+	MotionTrackingConfig( int argc, char **argv )
+		: _cmd("Frame-by-frame motion tracking from CamHD files", ' ', ""),
+			_skipArg("","skip","Number of frames",false,0,"Number of frames", _cmd),
+			_strideArg("s","stride","Number of frames",false,10,"Number of frames", _cmd),
+			_stopArg("","stop","Stop at frame #",false,0,"Number of frames", _cmd),
+			_doDisplayArg("x","display","", _cmd, false ),
+			_waitKeyArg("","wait-key","Number of frames",false,-1,"Number of frames", _cmd),
+			_scaleArg("","scale","Scale",false,1.0,"Scale",_cmd),
+			_outputScaleArg("","output-scale","Scale",false,1.0,"Scale",_cmd),
+			_blockSizeArg("","block-size","",false,16,"",_cmd),
+			_videoOutputArg("","video-out","",false,"","", _cmd),
+			_csvOutputArg("","csv-out","",false,"","", _cmd),
+			_videoInputArg("input-file", "Input file", true, "", "Input filename", _cmd )
+	{
+		parse( argc, argv );
+	}
+
+	void parse( int argc, char **argv )
+	{
+		try {
+			_cmd.parse( argc, argv );
+
+			fs::path inputPath( videoInputPath() );
+			if( !fs::exists(inputPath) || !fs::is_regular_file( inputPath) ) {
+				cerr << "error: " << videoInput() << " doesn't exist or isn't readable!" << endl;
+				exit(-1);
+			}
+
+		} catch (TCLAP::ArgException &e)  // catch any exceptions
+		{
+			cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
+		}
+
+		_waitKey = _waitKeyArg.getValue();
+	}
+
+	float updateWaitKey( float fps )
+	{
+		if( _waitKey < 0 ) {
+			if( fps <= 0.0 ) fps = 29.97;
+			_waitKey = 1000.0/fps;
+		}
+
+		return _waitKey;
+	};
+
+	float waitKey( void ) const { return _waitKey; }
+
+
+protected:
+
+	TCLAP::CmdLine _cmd;
+	TCLAP::ValueArg<int> _waitKeyArg;
+	float _waitKey;
+
+	TCLAP::SwitchArg _doDisplayArg;
+	TCLAP::UnlabeledValueArg<string> _videoInputArg;
+
+	#define AUTO_ACCESSOR( type, name ) \
+		public: \
+			type name( void ) { return _##name##Arg.getValue(); } \
+			bool name##Set( void ) { return _##name##Arg.isSet(); }
+
+	#define TCLAP_ACCESSOR( type, name ) \
+		protected: \
+			TCLAP::ValueArg<type> _##name##Arg; \
+		public: \
+			AUTO_ACCESSOR( type, name )
+
+
+		TCLAP_ACCESSOR( unsigned int, skip )
+		TCLAP_ACCESSOR( unsigned int, stride )
+		TCLAP_ACCESSOR( unsigned int, stop )
+
+		TCLAP_ACCESSOR( unsigned int, blockSize )
+
+		TCLAP_ACCESSOR( float, scale )
+		TCLAP_ACCESSOR( float, outputScale )
+
+
+		AUTO_ACCESSOR( bool, doDisplay )
+
+		AUTO_ACCESSOR( std::string, videoInput )
+		fs::path videoInputPath( void ) { return _videoInputArg.getValue(); }
+
+		TCLAP_ACCESSOR( string, videoOutput )
+		fs::path videoOutputPath( void ) { return _videoOutputArg.getValue(); }
+
+		TCLAP_ACCESSOR( string, csvOutput )
+		fs::path csvOutputPath( void ) { return _csvOutputArg.getValue(); }
+
+};
+
+
+class MotionTrackingCSV {
+public:
+	MotionTrackingCSV( fs::path filename )
+		: _filename( filename )
+	{
+			if( !_filename.empty() ) {
+				_out.open( _filename.string() );
+				writeHeader();
+			}
+	}
+
+	bool isOpened( void ) const
+	{
+		if( !_filename.empty() && _out.is_open() ) return true;
+		return false;
+	}
+
+	void writeHeader()
+	{
+		if( !isOpened() ) return;
+
+		_out << "# framenum,ms_per_frame,mean_x,mean_y" << endl;
+
+	}
+
+	void write( unsigned int frameNum, float dt, std::array<cv::Mat,2>  &blockMeans, Vec2f &overallMean, float scale = 1.0 )
+	{
+		_out << frameNum << "," << dt << "," << overallMean[0]/scale << "," << overallMean[1]/scale;
+
+		for( Point p(0,0); p.y < blockMeans[0].rows; ++p.y) {
+			for( p.x = 0; p.x < blockMeans[0].cols; ++p.x ) {
+
+				float bmx = blockMeans[0].at<float>(p);
+				float bmy = blockMeans[1].at<float>(p);
+
+				_out << "," << bmx/scale << "," << bmy/scale;
+			}
+		}
+
+		_out << endl;
+
+	}
+
+protected:
+
+	fs::path _filename;
+	ofstream _out;
+};
+
+
 class MotionTracking
 {
 public:
-	MotionTracking( Config &conf )
+	MotionTracking( MotionTrackingConfig &conf )
 		: _conf( conf ),
 			_csv( conf.csvOutputPath() ),
 			_capture( conf.videoInput() ),
@@ -301,8 +449,8 @@ public:
 
 protected:
 
-	Config &_conf;
-	CSVWriter _csv;
+	MotionTrackingConfig &_conf;
+	MotionTrackingCSV _csv;
 
 	VideoCapture _capture;
 	std::unique_ptr<VideoWriter> _writer;
@@ -319,7 +467,7 @@ protected:
 
 int main( int argc, char ** argv )
 {
-	CamHD_MotionTracking::Config config( argc, argv );
+	MotionTrackingConfig config( argc, argv );
 
 	MotionTracking mt( config );
 	mt();
