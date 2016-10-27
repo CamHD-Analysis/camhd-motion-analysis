@@ -6,14 +6,15 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR})
 set(RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 
 ## Use ccache if available
-find_program(CCACHE_FOUND ccache)
-if(CCACHE_FOUND)
-		message( "Using ccache" )
-    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
-    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
-endif(CCACHE_FOUND)
+# find_program(CCACHE_FOUND ccache)
+# if(CCACHE_FOUND)
+# 		message( "Using ccache" )
+#     set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+#     set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+# endif(CCACHE_FOUND)
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+
 list(APPEND OPENCV_COMPONENTS core highgui imgproc video)
 
 option(USE_GPU "Build GPU-accelerated tools" OFF)
@@ -38,13 +39,13 @@ include_directories( ${CAMHD_MOTRACK_INCLUDE_DIRS} )
 
 add_subdirectory("lib/")
 
-add_subdirectory("tools")
+add_subdirectory("tools/")
 
 option( BUILD_UNIT_TESTS "Build unit tests" ON )
 if( BUILD_UNIT_TESTS )
   ## Build a local copy of gtest (as per the GTest FAQ)
   include( ${CMAKE_SOURCE_DIR}/cmake/BuildGTestLibraries.cmake )
 
-#  add_subdirectory( test/unit/active_object )
+  add_subdirectory( test/unit/ )
 
 endif()
