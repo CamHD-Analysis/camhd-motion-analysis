@@ -31,8 +31,11 @@ set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 ## Set global include paths
 set( CAMHD_MOTRACK_INCLUDE_DIRS
+	${G3LOG_INCLUDE_DIR}
   ${CMAKE_SOURCE_DIR}/lib
   ${OpenCV_INCLUDE_DIRS} )
+
+
 include_directories( ${CAMHD_MOTRACK_INCLUDE_DIRS} )
 
 add_subdirectory("lib/")

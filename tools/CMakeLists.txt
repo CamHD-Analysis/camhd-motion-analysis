@@ -5,6 +5,7 @@ include_directories(
 
 set( COMMON_LIBRARIES
       camhd_motrack
+      ${G3LOG_LIB}
       ${OpenCV_LIBRARIES}
       ${Boost_LIBRARIES} )
 
