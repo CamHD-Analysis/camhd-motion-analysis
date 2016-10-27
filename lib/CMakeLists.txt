@@ -1,7 +1,5 @@
 # Set source files
-set(camhd_motrack_SOURCE_FILES
-  ${CMAKE_CURRENT_SOURCE_DIR}/foo.cpp
-)
+file(GLOB camhd_motrack_SOURCE_FILES *.cpp )
 
 
 include_directories(

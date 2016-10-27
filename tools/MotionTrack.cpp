@@ -16,6 +16,8 @@
 #include "MotionTrack/config.h"
 #include "MotionTrack/csv_writer.h"
 
+#include "g3log/g3log.hpp"
+
 using namespace std;
 using namespace cv;
 
@@ -100,10 +102,10 @@ public:
 		cv::Size compositeSz( 3*outputSz.width, outputSz.height );
 
 		cv::Size blockSz( workingSz.width / _conf.blockSize(), workingSz.height / _conf.blockSize() );
-		cout << "Video frames are " << sz.width << " x " << sz.height << endl;
-		cout << "Video is " << frameCount() << " frames long" << endl;
-		cout << "    at " << fps() << " fps" << endl;
-		cout << "Working size is " << workingSz.width << " x " << workingSz.height << endl;
+		LOG(DEBUG) << "Video frames are " << sz.width << " x " << sz.height;
+		LOG(DEBUG) << "Video is " << frameCount() << " frames long" << endl;
+		LOG(DEBUG) << "    at " << fps() << " fps" << endl;
+		LOG(DEBUG) << "Working size is " << workingSz.width << " x " << workingSz.height << endl;
 
 		if( _conf.videoOutputSet()) {
 			fs::path outputPath( _conf.videoOutput() );
