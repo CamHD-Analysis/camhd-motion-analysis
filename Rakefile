@@ -1,80 +1,56 @@
 
 task :default => "debug:test"
 
-@cmake_opts = ['-D BUILD_UNIT_TESTS:BOOL=True']
+@build_opts = {}
 load 'config.rb' if FileTest::exists? 'config.rb'
 
 ['Debug','Release'].each { |build_type|
-  build_namespace = build_type.downcase.to_sym
-  namespace build_namespace do
+  namespace build_type.downcase.to_sym do
     build_dir = ENV['BUILD_DIR'] || "build-#{build_type}"
 
-    task :env do
-      sh "echo $OpenCV_DIR"
-    end
-
     task :build do
-      unless FileTest::directory? build_dir
-        FileUtils::mkdir build_dir
-        sh "cd %s && cmake -D CMAKE_BUILD_TYPE:STRING=\"%s\" %s  .." % [build_dir, build_type, @cmake_opts.join(' ')]
-      end
-
-      if !FileTest::exists? build_dir + "/g3log/src/g3log-build/libg3logger.a"
-        sh "cd %s && make deps" % build_dir
-      end
-
-      sh "cd %s && make" % build_dir
+      FileUtils::mkdir build_dir unless FileTest::directory? build_dir
+      opencv_opt = "-o opencv_dir=%s" % @build_opts[:opencv_dir] if @build_opts[:opencv_dir]
+      sh "cd %s && conan install --scope build_tests=True -s build_type=%s %s .. --build =missing" % [build_dir, build_type, opencv_opt]
+      sh "cd %s && conan build .." % [build_dir]
     end
 
     task :test => :build do
       sh "cd %s && make unit_test" % build_dir
     end
 
-    task :distclean do
-      sh "rm -rf #{build_dir}"
-    end
   end
-
-  task :distclean => "#{build_namespace}:distclean"
 }
 
+namespace :conan do
+  task :export do
+    sh "rm -rf build-*"
+    sh "conan export amarburg/testing"
+  end
+end
+
 namespace :dependencies do
-  task :linux do
-    sh "sudo apt-get install -y cmake opencv-dev"
+
+  task :trusty do
+    sh "sudo apt-get install -y cmake libopencv-dev libtclap-dev libboost-all-dev"
+    sh "pip install conan"
   end
 
   task :osx do
     sh "brew update"
     sh "brew tap homebrew/science"
-    sh "brew install cmake homebrew/science/opencv"
+    sh "brew install homebrew/science/opencv tclap conan"
+  end
+
+  namespace :travis do
+
+    task :linux => "dependencies:trusty"
+
+    task :osx => [:pip_uninstall_numpy, "dependencies:osx"]
+
+    task :pip_uninstall_numpy do
+      sh "pip uninstall -y numpy"
+    end
+
   end
 end
-
-
-#
-# BUILD_DIR = "build"
-#
-#
-# task :default => :build
-#
-# task :build do
-#   unless FileTest::exists?( BUILD_DIR + "/g3log/src/g3log-build/libg3logger.a" )
-#     sh "cd %s && make deps" % BUILD_DIR
-#   end
-#
-#   sh "cd %s && make" % BUILD_DIR
-# end
-#
-# task :test do
-#   sh "cd %s && make unit_test" % BUILD_DIR
-# end
-#
-# task :bootstrap do
-# opencv_24_dir = "/opt/opencv-2.4/share/OpenCV"
-#
-#   FileUtils::mkdir BUILD_DIR unless FileTest::directory? BUILD_DIR
-#   sh "cd %s && OpenCV_DIR=#{opencv_24_dir} cmake -D CMAKE_BUILD_TYPE:STRING=\"Debug\" " \
-#       "-D LOCAL_LIBACTIVE_OBJECT:FILEPATH=../libactive_object " \
-#       "-D LOCAL_LIBLOGGER:FILEPATH=../liblogger " \
-#       ".." % BUILD_DIR
-# end

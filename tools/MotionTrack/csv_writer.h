@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #include <opencv2/core.hpp>
 
 #include <boost/filesystem.hpp>

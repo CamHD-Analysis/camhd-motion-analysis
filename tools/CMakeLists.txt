@@ -1,11 +1,14 @@
 
 include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CONAN_INCLUDE_DIRS}
 )
+
+link_directories( ${CONAN_LIBRARY_DIR} )
 
 set( COMMON_LIBRARIES
       camhd_motrack
-      ${G3LOG_LIB}
+      ${CONAN_LIBS}
       ${OpenCV_LIBRARIES}
       ${Boost_LIBRARIES} )
 
