@@ -3,6 +3,7 @@
 #include <opencv2/core.hpp>
 
 #include "libvideoio/DataSource.h"
+#include "libvideoio/VideoOutput.h"
 
 #include "MotionTrack/config.h"
 #include "MotionTrack/csv_writer.h"

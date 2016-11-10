@@ -1,7 +1,7 @@
 
 task :default => "debug:test"
 
-@conan_opts = { shared: 'True', build_parallel: 'False' }
+@conan_opts = {  build_parallel: 'False' }
 @conan_settings = {}
 @conan_scopes = { build_tests: 'True' }
 @conan_build = "missing"
