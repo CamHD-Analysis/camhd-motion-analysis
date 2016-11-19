@@ -90,16 +90,16 @@ public:
 		_conf.updateWaitKey( _video.fps() );
 
 
-		// if( _conf.skip() > 0 ) {
-		// 	_capture.set(CV_CAP_PROP_POS_FRAMES, _conf.skip() );
-		//
-		// 	// for( auto i = 0; i < _conf.skip(); ++i ) {
-		// 	// 	if( !_capture.grab() )  {
-		// 	// 		cerr << "Reached end of file while skipping." << endl;
-		// 	// 		return false;
-		// 	// 	}
-		// 	// }
-		// }
+		if( _conf.skip() > 0 ) {
+			_video.skipTo( _conf.skip() );
+
+			// for( auto i = 0; i < _conf.skip(); ++i ) {
+			// 	if( !_video.grab() )  {
+			// 		cerr << "Reached end of file while skipping." << endl;
+			// 		return false;
+			// 	}
+			// }
+		}
 
 		int frameNum = _video.frameNum();
 
@@ -113,6 +113,7 @@ public:
 			_video.getImage( 0, current );
 			// curGray must be inside the loop otherwise
 			// prevGray = curGray doesn't do anything...
+
 			Mat cropped( current, _cropRect );
 			Mat curGray, mag, angle;
 
