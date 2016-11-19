@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.7)
 project(camhd_motion_tracking)
 
+set(CMAKE_PREFIX_PATH /usr)
+
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
 
@@ -11,6 +13,16 @@ option(USE_GPU "Build GPU-accelerated tools" OFF)
 if( USE_GPU )
 	add_definitions( -DUSE_GPU )
 	list(APPEND OPENCV_COMPONENTS gpu )
+endif()
+
+find_package( CUDA )
+if( CUDA_VERSION )
+	message("Found CUDA version ${CUDA_VERSION}")
+	if(${CUDA_VERSION} VERSION_EQUAL "8.0")
+		message("Disabling CUDA_USE_STATIC_CUDA_RUNTIME")
+		set( CUDA_USE_STATIC_CUDA_RUNTIME OFF CACHE BOOL "" FORCE  )
+	endif()
+  find_package( CUDA )
 endif()
 
 find_package(OpenCV 2.4 COMPONENTS ${OPENCV_COMPONENTS} REQUIRED)

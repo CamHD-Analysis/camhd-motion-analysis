@@ -32,6 +32,10 @@ load 'config.rb' if FileTest.readable? 'config.rb'
   end
 }
 
+task :distclean do
+  sh "rm -rf build-*"
+end
+
 namespace :conan do
   task :export do
     sh "rm -rf build-*"

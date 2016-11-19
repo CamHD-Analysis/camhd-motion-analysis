@@ -7,15 +7,10 @@ class LibVideiIOConan(ConanFile):
   generators = "cmake"
   options = {"opencv_dir": "ANY",  "build_parallel": [True, False]}
   default_options = "opencv_dir=''", "build_parallel=True"
-  requires = "TCLAP/master@jmmut/testing", \
-              "libactive_object/0.1@amarburg/testing", \
-              "g3log/0.1@amarburg/testing", \
-              "liblogger/0.1@amarburg/testing", \
-              "libvideoio/0.1@amarburg/testing"
+  requires =  "libvideoio/master@amarburg/testing"
 
   def config(self):
     self.options["libvideoio"].opencv_dir = self.options.opencv_dir
-    self.options["liblogger"].opencv_dir = self.options.opencv_dir
 
     if self.scope.dev and self.scope.build_tests:
       self.requires( "gtest/1.8.0@lasote/stable" )

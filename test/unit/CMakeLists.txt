@@ -9,9 +9,11 @@ add_executable( camhd_motrack_unit_test
 link_directories( ${GTEST_LIBRARY_DIR} )
 
 target_link_libraries( camhd_motrack_unit_test
-          ${GTEST_BOTH_LIBRARIES}
+          ${CONAN_LIBS}
           camhd_motrack )
 
 # Don't use ctest, instead just execture the Google test binaries
-add_custom_target( unit_test ${PROJECT_BINARY_DIR}/camhd_motrack_unit_test
+add_custom_target( unit_test
+                  COMMAND ./camhd_motrack_unit_test
+                  WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/bin/
                     DEPENDS camhd_motrack_unit_test )
