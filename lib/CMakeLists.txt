@@ -7,7 +7,9 @@ include_directories(
 )
 
 # build shared library.
-add_library(camhd_motrack SHARED ${camhd_motrack_SOURCE_FILES})
+add_library(camhd_motrack SHARED
+  fmemopen.c
+  ${camhd_motrack_SOURCE_FILES})
 # target_link_libraries(camhd_motrack
 #   ${Boost_LIBRARIES}
 # )
