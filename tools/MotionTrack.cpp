@@ -1,5 +1,6 @@
 #include <string>
 #include <fstream>
+#include <sstream>
 #include <curl/curl.h>
 
 #include "json.hpp"
@@ -7,6 +8,9 @@
 using json = nlohmann::json;
 
 #include "fmemopen.h"
+
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
 
 //#include "MotionTrack/MotionTracking.h"
 
@@ -20,7 +24,7 @@ using namespace std;
 
 //using namespace CamHD_MotionTracking;
 
-const string host = "lazycache.35.184.13.78.nip.io";
+const string host = "camhd-app-dev.appspot.com";
 const string url = "/v1/org/oceanobservatories/rawdata/files/RS03ASHS/PN03B/06-CAMHDA301/2016/09/01/CAMHDA301-20160901T000000Z.mov";
 
 int main( int argc, char ** argv )
@@ -34,6 +38,7 @@ int main( int argc, char ** argv )
 	//mt();
 
 	CURL *conn = curl_easy_init();
+	curl_easy_setopt( conn, CURLOPT_FOLLOWLOCATION, 1 );
 
 	string video_url("http://");
 	video_url += host + url;
@@ -74,6 +79,32 @@ int main( int argc, char ** argv )
 LOG(INFO) << "File has " << maxFrames << " frames";
 
 
+for( auto frame = 0; frame < maxFrames; frame += 100 ) {
+
+
+	stringstream frame_url;
+	frame_url << video_url << "/frame/" << (frame == 0 ? 1 : frame);
+
+	LOG(INFO) << frame_url.str();
+
+	curl_easy_setopt( conn, CURLOPT_URL, frame_url.str().c_str() );
+
+	char frame_file[255];
+	sprintf(frame_file, "../../images/image_%08d.png", frame );
+
+
+	FILE *img_buf = fopen(frame_file, "w" ); //fmemopen( buf, 2048, "w");
+	curl_easy_setopt( conn, CURLOPT_WRITEDATA, img_buf );
+	ret = curl_easy_perform( conn );
+
+	if( ret != CURLE_OK ) {
+		LOG(FATAL) << "CURL error, returned code: " << ret;
+	}
+	fclose(img_buf);
+
+	cout << "Wrote to: " << frame_file << endl;
+
+}
 
 
 	curl_easy_cleanup(conn);

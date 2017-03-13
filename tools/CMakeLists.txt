@@ -13,16 +13,15 @@ set( COMMON_LIBRARIES
       ${OpenCV_LIBRARIES}
       ${Boost_LIBRARIES} )
 
-# build image node
 add_executable(motrack MotionTrack.cpp )
 target_link_libraries( motrack
             ${COMMON_LIBRARIES} )
 
-# # build image node
-# add_executable(optical_flow OpticalFlow.cpp )
-# target_link_libraries( optical_flow
-#             ${COMMON_LIBRARIES} )
-#
+
+add_executable(optical_flow OpticalFlow.cpp )
+target_link_libraries( optical_flow
+            ${COMMON_LIBRARIES} )
+
 # if( USE_GPU )
 # 	add_executable(motrack_gpu MotionTrackGpu.cpp )
 # 	target_link_libraries( motrack_gpu

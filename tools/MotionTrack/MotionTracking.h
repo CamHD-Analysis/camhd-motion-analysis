@@ -39,7 +39,7 @@ public:
 		float outScale = scale;
 		if( _conf.outputScaleSet() ) outScale = _conf.outputScale();
 
-		cv::Size sz( frameSize() );
+		cv::Size sz( _video.cvSize() );
 		_cropRect = Rect( cv::Point(0,0), sz );
 
 		cv::Size workingSz( sz.width*scale, sz.height*scale );
@@ -64,50 +64,56 @@ public:
 
 		cv::Size blockSz( workingSz.width / _conf.blockSize(), workingSz.height / _conf.blockSize() );
 		LOG(DEBUG) << "Video frames are " << sz.width << " x " << sz.height;
-		LOG(DEBUG) << "Video is " << frameCount() << " frames long" << endl;
-		LOG(DEBUG) << "    at " << fps() << " fps" << endl;
+		LOG(DEBUG) << "Video is " << _video.numFrames() << " frames long" << endl;
+		LOG(DEBUG) << "    at " << _video.fps() << " fps" << endl;
 		LOG(DEBUG) << "Working size is " << workingSz.width << " x " << workingSz.height << endl;
 
 		if( _conf.videoOutputSet()) {
 			fs::path outputPath( _conf.videoOutput() );
 			cout << "Saving flow video to " << outputPath.string() << endl;
-			cv::Size sz( frameSize() );
+			cv::Size sz( _video.cvSize() );
 //int( _capture.get( CV_CAP_PROP_FOURCC ))
-			float fpsOut = fps()/10;
+			float fpsOut = _video.fps()/10;
 			cout << " fpsOut: " << fpsOut << endl;
-			_output.reset( new VideoWriter( outputPath.string(), CV_FOURCC('a','v','c','1'), fpsOut,
-										compositeSz, true  ) );
+			_output.reset( new libvideoio::VideoOutput( outputPath.string(), fpsOut ));
 
-			if( !_output->isOpened() ) {
-				cerr << "Unabled to open output video " << outputPath.string() << ", aborting";
-				return false;
-			}
+			// _output.reset( new VideoWriter( outputPath.string(), CV_FOURCC('a','v','c','1'), fpsOut,
+			// 							compositeSz, true  ) );
+
+			// if( !_output->isOpened() ) {
+			// 	cerr << "Unabled to open output video " << outputPath.string() << ", aborting";
+			// 	return false;
+			// }
 		}
 
 
-		_conf.updateWaitKey( fps() );
+		_conf.updateWaitKey( _video.fps() );
 
 
 		if( _conf.skip() > 0 ) {
-			_capture.set(CV_CAP_PROP_POS_FRAMES, _conf.skip() );
+			_video.skipTo( _conf.skip() );
+
 			// for( auto i = 0; i < _conf.skip(); ++i ) {
-			// 	if( !_capture.grab() )  {
+			// 	if( !_video.grab() )  {
 			// 		cerr << "Reached end of file while skipping." << endl;
 			// 		return false;
 			// 	}
 			// }
 		}
 
-		int frameNum = _capture.get( CV_CAP_PROP_POS_FRAMES );
+		int frameNum = _video.frameNum();
 
 		Mat current, prevGray, scaled;
 		cout << "Press 'q' to interrupt (be sure an OpenCV window has focus)" << endl;
 
 		auto start = std::chrono::system_clock::now();
 
-		while( _capture.read(current) ) {
+		while( _video.grab() ) {
+
+			_video.getImage( 0, current );
 			// curGray must be inside the loop otherwise
 			// prevGray = curGray doesn't do anything...
+
 			Mat cropped( current, _cropRect );
 			Mat curGray, mag, angle;
 
@@ -172,7 +178,7 @@ public:
 				drawArrows( originalRoi, blockMeans, overallMean );
 				_csv.write( frameNum, meanDt, blockMeans, overallMean, _conf.scale()*_conf.stride() );
 
-				if( _output() )
+				if( _output )
 					_output->write( composite );
 
 				char ch = 0;
@@ -184,7 +190,7 @@ public:
 					ch = waitKey( _conf.waitKey() );
 				}
 
-				if( checkKbd( ch ) ) break;
+				//if( checkKbd( ch ) ) break;
 			}
 
 			auto end = std::chrono::system_clock::now();
@@ -198,19 +204,19 @@ public:
 
 			if( _conf.stride() > 1 ) {
 				for( auto i = 0; i < (_conf.stride()-1); ++i ) {
-					if( !_capture.grab() || checkKbd() ) break;
+					if( !_video.grab() ) break;
 				}
 			}
 
 			if( _conf.stopSet() && frameNum >= _conf.stop() ) break;
 
 			// Returns the number of the _next_ frame to be read
-		 frameNum = _capture.get( CV_CAP_PROP_POS_FRAMES );
+		 frameNum = _video.frameNum();
 
 		}
 
 		cout << "Releasing writer" << endl;
-		_output.release();
+		//_output.release();
 
 		return true;
 	}
@@ -267,8 +273,8 @@ protected:
 	Config &_conf;
 	CSVWriter _csv;
 
-	lsd_slam::VideoSource _video;
-  lsd_slam::VideoOutput _output;
+	libvideoio::VideoSource _video;
+  std::shared_ptr<libvideoio::VideoOutput> _output;
 
 	Ptr<DenseOpticalFlow> _opticalFlow;
 
