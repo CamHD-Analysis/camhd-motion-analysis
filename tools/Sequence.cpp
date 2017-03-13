@@ -1,13 +1,14 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 #include <curl/curl.h>
 
 #include "json.hpp"
 // for convenience
 using json = nlohmann::json;
 
-#include "fmemopen.h"
+//#include "fmemopen.h"
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -25,7 +26,7 @@ using namespace std;
 //using namespace CamHD_MotionTracking;
 
 const string host = "camhd-app-dev.appspot.com";
-const string url = "/v1/org/oceanobservatories/rawdata/files/RS03ASHS/PN03B/06-CAMHDA301/2016/09/01/CAMHDA301-20160901T000000Z.mov";
+const string url = "/v1/org/oceanobservatories/rawdata/files/RS03ASHS/PN03B/06-CAMHDA301/2016/10/01/";
 
 int main( int argc, char ** argv )
 {
@@ -69,28 +70,31 @@ int main( int argc, char ** argv )
 	json j3;
 	json_stream >> j3;
 
-	int maxFrames = -1;
+	std::vector< std::string > files;
 
-	if (j3.find("NumFrames") != j3.end()) {
-		maxFrames = j3["NumFrames"];
-}
+	if (j3.find("Files") != j3.end()) {
+		auto jFiles = j3["Files"].get< vector<string> >();
+		std::copy_if( jFiles.begin(), jFiles.end(), std::back_inserter(files),
+	 				[]( const std::string &filename ) { return filename.find(".mov") != string::npos;  }  );
+	}
 
+	LOG(INFO) << "Directory has " << files.size() << " files.";
 
-LOG(INFO) << "File has " << maxFrames << " frames";
-
-
-for( auto frame = 0; frame < maxFrames; frame += 100 ) {
-
+	for( auto file : files ) {
+		const int frame = 12500;
 
 	stringstream frame_url;
-	frame_url << video_url << "/frame/" << (frame == 0 ? 1 : frame);
+	frame_url << video_url << file << "/frame/" << (frame == 0 ? 1 : frame);
 
 	LOG(INFO) << frame_url.str();
 
 	curl_easy_setopt( conn, CURLOPT_URL, frame_url.str().c_str() );
 
 	char frame_file[255];
-	sprintf(frame_file, "../../images/image_%08d.png", frame );
+	const string destDir("/auto/canine/aaron/workspace/camhd_analysis/camhd_motion_tracking/sequence");
+	sprintf(frame_file, "%s/%s_%d.png", destDir.c_str(), file.c_str(), frame );
+
+	LOG(INFO) << "Saving image to " << frame_file;
 
 
 	FILE *img_buf = fopen(frame_file, "w" ); //fmemopen( buf, 2048, "w");

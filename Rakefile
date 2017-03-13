@@ -69,3 +69,18 @@ namespace :dependencies do
 
   end
 end
+
+
+
+
+namespace :timelapse do
+  task :encode do
+    sh "cat timelapse/*.png | ffmpeg -y -framerate 2 -f image2pipe -i -  -pix_fmt yuv420p timelapse.mov"
+  end
+end
+
+namespace :sequence do
+  task :encode do
+    sh "cat sequence/*.png | ffmpeg -y -framerate 1 -f image2pipe -i - -pix_fmt yuv420p sequence.mov"
+  end
+end

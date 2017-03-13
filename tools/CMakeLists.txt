@@ -13,14 +13,18 @@ set( COMMON_LIBRARIES
       ${OpenCV_LIBRARIES}
       ${Boost_LIBRARIES} )
 
-add_executable(motrack MotionTrack.cpp )
-target_link_libraries( motrack
+add_executable(timelapse TimeLapse.cpp )
+target_link_libraries( timelapse
             ${COMMON_LIBRARIES} )
 
 
-add_executable(optical_flow OpticalFlow.cpp )
-target_link_libraries( optical_flow
+add_executable(sequence Sequence.cpp )
+target_link_libraries( sequence
             ${COMMON_LIBRARIES} )
+
+# add_executable(optical_flow OpticalFlow.cpp )
+# target_link_libraries( optical_flow
+#             ${COMMON_LIBRARIES} )
 
 # if( USE_GPU )
 # 	add_executable(motrack_gpu MotionTrackGpu.cpp )
