@@ -2,17 +2,30 @@
 
 #include <string>
 
+#include <opencv2/core.hpp>
 
 namespace CamHDMotionTracking {
 
 using std::string;
+
+
+class CamHDMovie {
+public:
+  CamHDMovie( const string &path, const string &json = "" );
+
+protected:
+    string _path;
+};
+
+
 
 class CamHDClient {
 public:
 
   CamHDClient( const string &baseURL );
 
-  void get( const string &path );
+  CamHDMovie getMovie( const string &path );
+  cv::Mat getFrame( const CamHDMovie &movie, int frame );
 
 protected:
 

@@ -1,0 +1,39 @@
+#pragma once
+
+#include <string>
+#include <stdio.h>
+#include <future>
+
+namespace CamHDMotionTracking {
+
+  using std::string;
+
+  struct HTTPResult {
+
+    HTTPResult(  );
+
+    int httpStatus;
+    std::string body;
+
+  };
+
+  class HTTPRequest {
+  public:
+
+      HTTPRequest( const string &url );
+
+      void operator()( std::promise<HTTPResult> promise );
+      void perform();
+      size_t WriteCallback(char* ptr, size_t size, size_t nmemb);
+
+      //std::promise<HTTPResult> promise;
+      const HTTPResult &result() const { return _result; }
+
+    protected:
+
+      HTTPResult _result;
+      std::string _url;
+
+  };
+
+}

@@ -8,3 +8,12 @@ include_directories(
 # build shared library.
 add_library(camhd_motrack SHARED
   ${camhd_motrack_SOURCE_FILES})
+
+target_link_libraries( camhd_motrack
+  ${CURLPP_LIBRARY}
+  curl
+)
+
+set_target_properties(camhd_motrack PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BUILD_DIR}/bin
+)
