@@ -8,7 +8,7 @@ link_directories( ${CONAN_LIBRARY_DIR} )
 
 set( COMMON_LIBRARIES
       camhd_motrack
-      -lcurl
+      ${CURLPP_LIBRARY}
       ${CONAN_LIBS}
       ${OpenCV_LIBRARIES}
       ${Boost_LIBRARIES} )
