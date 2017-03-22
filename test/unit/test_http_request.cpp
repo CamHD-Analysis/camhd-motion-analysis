@@ -17,15 +17,15 @@ TEST(test_http_request, test_synchronous) {
 
 
 TEST(test_http_request, test_asynchronous) {
-  std::promise<HTTPResult> promise;
+  //std::promise<HTTPResult> promise;
   HTTPRequest request(AlphabetUrl );
 
-  std::future<HTTPResult> future = promise.get_future();
-  std::thread http( request, std::move(promise) );
+  //std::future<HTTPResult> future = promise.get_future();
+  auto future = std::async(request);
 
   future.wait();
 
   HTTPResult result( future.get() );
 
-  http.join();
+  //http.join();
 }

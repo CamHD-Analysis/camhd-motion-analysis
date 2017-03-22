@@ -12,17 +12,19 @@ namespace CamHDMotionTracking {
   using namespace std::placeholders;
 
   HTTPRequest::HTTPRequest( const string &url )
-    : _result(), _url(url)
+    : _url(url)
   {
   }
 
-void HTTPRequest::operator()( std::promise<HTTPResult> promise ) {
-  perform();
+HTTPResult HTTPRequest::operator()( ) {
+  return perform();
   // Trigger future
-  promise.set_value(_result);
+  //promise.set_value(_result);
+
+  //return request.result();
 }
 
-  void HTTPRequest::perform( ) {
+  HTTPResult HTTPRequest::perform( ) {
     try {
       curlpp::Easy request;
       request.setOpt(new curlpp::options::Url(_url) );
@@ -34,6 +36,7 @@ void HTTPRequest::operator()( std::promise<HTTPResult> promise ) {
 
       request.perform();
 
+      return result();
     }
     catch( cURLpp::RuntimeError &e ) {
 

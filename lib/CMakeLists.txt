@@ -14,6 +14,8 @@ target_link_libraries( camhd_motrack
   curl
 )
 
-set_target_properties(camhd_motrack PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BUILD_DIR}/bin
-)
+set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin )
+
+# set_target_properties(camhd_motrack PROPERTIES
+#         RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BUILD_DIR}/bin
+# )
