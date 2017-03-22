@@ -29,7 +29,9 @@ namespace CamHDMotionTracking {
       size_t WriteCallback(char* ptr, size_t size, size_t nmemb);
 
       //std::promise<HTTPResult> promise;
-      const HTTPResult &result() const { return _result; }
+      const HTTPResult result() const { return _result; }
+
+      static HTTPResult Get( const string &url );
 
     protected:
 

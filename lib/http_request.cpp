@@ -36,6 +36,8 @@ HTTPResult HTTPRequest::operator()( ) {
 
       //request.setOpt(new curlpp::options::Header(true));
 
+      request.setOpt( new curlpp::options::FollowLocation(true));
+
       curlpp::types::WriteFunctionFunctor writeFunctor = std::bind(&HTTPRequest::WriteCallback, this, _1, _2, _3);
       request.setOpt(new curlpp::options::WriteFunction(writeFunctor));
 
@@ -86,6 +88,13 @@ HTTPResult HTTPRequest::operator()( ) {
 //
 //     return header.size();
 //   }
+
+HTTPResult HTTPRequest::Get( const string &url )
+{
+  HTTPRequest request( url );
+  return request.perform();
+}
+
 
   //=================================================
   HTTPResult::HTTPResult( )

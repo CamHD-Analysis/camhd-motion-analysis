@@ -8,7 +8,7 @@ using namespace CamHDMotionTracking;
 
 using namespace std;
 
-TEST(test_camhd_client, test_synchronous) {
+TEST(test_camhd_client, test_get_movie) {
   auto movie( CamHDClient::getMovie( TestJsonLazycache ) );
 }
 
@@ -27,4 +27,18 @@ TEST(test_camhd_client, test_make_frame_url) {
   cout << "frameUrl: " << frameUrl << endl;
   cout << "url: " << urlStr.str() << endl;
   ASSERT_EQ( frameUrl.string(), urlStr.str() );
+}
+
+
+TEST(test_camhd_client, test_get_Frame) {
+  auto movie( CamHDClient::getMovie( TestJsonLazycache ) );
+
+  ASSERT_GT( movie.duration(), 0.0 );
+  ASSERT_GT( movie.numFrames(), 0 );
+
+  const int frameNum = 1000;
+  cv::Mat frame( CamHDClient::getFrame( movie, frameNum ));
+
+  ASSERT_EQ( frame.rows, 1080 );
+  ASSERT_EQ( frame.cols, 1920 );
 }

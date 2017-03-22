@@ -1,5 +1,11 @@
 
+#include <iostream>
+#include <vector>
+
 #include <g3log/g3log.hpp>
+
+#include <opencv2/highgui.hpp>
+#include <opencv2/core.hpp>
 
 #include "camhd_client.h"
 
@@ -20,9 +26,7 @@ CamHDMovie CamHDClient::getMovie( const fs::path &url )
 {
 
   // Synchronous
-  HTTPRequest request( url.string() );
-  request.perform();
-  HTTPResult result( request.result() );
+  auto result( HTTPRequest::Get( url.string() ) );
 
   // Check status
   if( result.httpStatus == 200 ) {
@@ -36,15 +40,23 @@ cv::Mat CamHDClient::getFrame( const CamHDMovie &mov, int frame )
 {
     fs::path url( CamHDClient::makeFrameURL(mov, frame));
 
-    HTTPRequest request( url.string() );
-    HTTPResult result( request.result() );
+    auto result( HTTPRequest::Get( url.string() ) );
 
     // Check status
     if( result.httpStatus != 200 ) {
       return cv::Mat();
     }
 
-  return cv::Mat();
+    cv::Mat in( result.body.size(), 1, CV_8UC1, (void *)result.body.data());
+
+    cout << "In: " << in.cols << " x " << in.rows << endl;
+
+    cv::Mat out( cv::imdecode(in, cv::IMREAD_UNCHANGED ) );
+
+    cout << "Out: " << out.cols << " x " << out.rows << endl;
+
+
+  return out;
 }
 
 
@@ -59,6 +71,7 @@ fs::path CamHDClient::makeFrameURL( const CamHDMovie &mov, int frame )
   frameUrl /= fNumStr.str();
 
   //LOG(INFO) << "Getting frame: " << frameUrl.string();
+
 
   return frameUrl;
 }
