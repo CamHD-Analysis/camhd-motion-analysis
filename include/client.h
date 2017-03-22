@@ -4,6 +4,9 @@
 
 #include <opencv2/core.hpp>
 
+#include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
+
 namespace CamHDMotionTracking {
 
 using std::string;
@@ -29,7 +32,7 @@ public:
 
 protected:
 
-  string _baseURL;
+  fs::path _baseURL;
 
 };
 

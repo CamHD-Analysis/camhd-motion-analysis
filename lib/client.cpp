@@ -12,15 +12,16 @@ using namespace std;
 CamHDClient::CamHDClient( const string &baseURL )
   : _baseURL( baseURL )
 {
-
+  // Query baseURL, potentially rewrite URL based on APIs available?
 }
 
 CamHDMovie CamHDClient::getMovie( const string &path )
 {
-  string moviePath = _baseURL + path;
+  fs::path moviePath( _baseURL );
+  moviePath /= fs::path(path);
 
   // Synchronous
-  HTTPRequest request( moviePath );
+  HTTPRequest request( moviePath.string() );
 
   HTTPResult result( request.result() );
 
