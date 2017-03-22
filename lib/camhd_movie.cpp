@@ -1,5 +1,6 @@
 
 #include "camhd_movie.h"
+#include "camhd_client.h"
 
 #include "json.hpp"
 // for convenience
@@ -7,8 +8,13 @@ using json = nlohmann::json;
 
 namespace CamHDMotionTracking {
 
-    CamHDMovie::CamHDMovie( const string &path, const string &json )
-      : _path( path ), _url(), _numFrames(0), _duration(0.0)
+  CamHDMovie::CamHDMovie( void )
+    : _url(), _originalUrl(), _numFrames(0), _duration(0.0)
+    {
+    }
+
+    CamHDMovie::CamHDMovie( const string &url, const string &json )
+      : _url( url ), _originalUrl(), _numFrames(0), _duration(0.0)
       {
         metadataFromJson( json );
       }
@@ -25,8 +31,14 @@ namespace CamHDMotionTracking {
 
         if (j3.find("Duration") != j3.end())   _duration = j3["Duration"];
 
-      if (j3.find("URL") != j3.end()) _url = j3["URL"];
+      if (j3.find("URL") != j3.end()) _originalUrl = j3["URL"];
 
+      }
+
+      cv::Mat CamHDMovie::getFrame( int frame ) {
+        if( frame < 1 || frame > numFrames() ) return cv::Mat();
+
+        return CamHDClient::getFrame( *this, frame );
       }
 
 }

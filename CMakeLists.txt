@@ -43,6 +43,13 @@ set( CAMHD_MOTRACK_INCLUDE_DIRS
 	${CMAKE_SOURCE_DIR}/thirdparty/include )
 include_directories( ${CAMHD_MOTRACK_INCLUDE_DIRS} )
 
+set( COMMON_LIBRARIES
+      ${CURLPP_LIBRARY}
+      ${CONAN_LIBS}
+      ${OpenCV_LIBRARIES}
+      ${Boost_LIBRARIES}
+		curl )
+
 add_subdirectory("lib/")
 add_subdirectory("tools/")
 

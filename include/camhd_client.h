@@ -7,30 +7,27 @@
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
 
+#include "camhd_movie.h"
+
 namespace CamHDMotionTracking {
 
 using std::string;
 
-
-class CamHDMovie {
-public:
-  CamHDMovie( const string &path, const string &json = "" );
-
-protected:
-    string _path;
-};
-
-
-
 class CamHDClient {
 public:
 
-  CamHDClient( );
+  CamHDClient( ) = delete;
+  CamHDClient( const CamHDClient & ) = delete;
+
 
   static CamHDMovie getMovie( const fs::path &path );
   static cv::Mat getFrame( const CamHDMovie &movie, int frame );
 
+  static fs::path makeFrameURL( const CamHDMovie &mov, int frame );
+
 protected:
+
+
 
   //fs::path _baseURL;
 

@@ -13,9 +13,7 @@ add_library(camhd_motrack SHARED
   ${camhd_motrack_SOURCE_FILES})
 
 target_link_libraries( camhd_motrack
-  ${CURLPP_LIBRARY}
-  ${Boost_LIBRARIES}
-  curl
+  ${COMMON_LIBRARIES}
 )
 
 # set_target_properties(camhd_motrack PROPERTIES

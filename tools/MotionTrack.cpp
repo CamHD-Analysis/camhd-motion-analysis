@@ -7,16 +7,12 @@
 
 #include "camhd_client.h"
 
-#include "json.hpp"
-// for convenience
-using json = nlohmann::json;
-
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
 //#include "MotionTrack/MotionTracking.h"
 
-#include "g3log/g3log.hpp"
+#include <g3log/g3log.hpp>
 #include <g3log/logworker.hpp>
 
 //#include "kbhit.h"
@@ -26,8 +22,8 @@ using namespace std;
 
 using namespace CamHDMotionTracking;
 
-const string host = "camhd-app-dev.appspot.com";
-const string url = "/v1/org/oceanobservatories/rawdata/files/RS03ASHS/PN03B/06-CAMHDA301/2016/09/01/CAMHDA301-20160901T000000Z.mov";
+const fs::path host( "https://camhd-app-dev.appspot.com");
+const fs::path url( "/v1/org/oceanobservatories/rawdata/files/RS03ASHS/PN03B/06-CAMHDA301/2016/09/01/CAMHDA301-20160901T000000Z.mov" );
 
 int main( int argc, char ** argv )
 {
@@ -42,48 +38,22 @@ int main( int argc, char ** argv )
 	//MotionTracking mt( config );
 	//mt();
 
+
+
 // 	CURL *conn = curl_easy_init();
 // 	curl_easy_setopt( conn, CURLOPT_FOLLOWLOCATION, 1 );
 //
-// 	string video_url("http://");
+	fs::path videoUrl(host);
+	videoUrl /= url;
 // 	video_url += host + url;
-//
-// 	LOG(INFO) << video_url;
-// 	curl_easy_setopt( conn, CURLOPT_URL, video_url.c_str() );
-//
-// 	// Store JSON to buffer
-// 	FILE *json_buf = fopen("/tmp/json", "w" ); //fmemopen( buf, 2048, "w");
-//
-// 	//curl_easy_setopt( conn, CURLOPT_WRITEFUNCTION, NULL );
-// 	curl_easy_setopt( conn, CURLOPT_WRITEDATA, json_buf );
-// 	//curl_easy_setopt( conn, CURLOPT_MAXFILESIZE, 2047 );
-//
-//
-// 	CURLcode ret = curl_easy_perform( conn );
-//
-// 	if( ret != CURLE_OK ) {
-// 		LOG(FATAL) << "CURL error, returned code: " << ret;
-// 	}
-//
-// 	// Ugliness
-// 	fclose( json_buf );
-// 	auto json_stream = ifstream( "/tmp/json" );
-//
-// 	LOG(INFO) << "CURL return value: " << ret;
-//
-// 	json j3;
-// 	json_stream >> j3;
-//
-// 	int maxFrames = -1;
-//
-// 	if (j3.find("NumFrames") != j3.end()) {
-// 		maxFrames = j3["NumFrames"];
-// }
-//
-//
-// LOG(INFO) << "File has " << maxFrames << " frames";
-//
-//
+
+	auto movieInfo( CamHDClient::getMovie( videoUrl ) );
+
+	// TODO.  Check for failure
+
+	LOG(INFO) << "File has " << movieInfo.numFrames() << " frames";
+
+
 // for( auto frame = 0; frame < maxFrames; frame += 100 ) {
 //
 //
