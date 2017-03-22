@@ -1,6 +1,6 @@
 
 
-#include "client.h"
+#include "camhd_client.h"
 
 #include "http_request.h"
 
@@ -9,25 +9,23 @@ namespace CamHDMotionTracking {
 
 using namespace std;
 
-CamHDClient::CamHDClient( const string &baseURL )
-  : _baseURL( baseURL )
+CamHDClient::CamHDClient(  )
+  // : _baseURL( baseURL )
 {
   // Query baseURL, potentially rewrite URL based on APIs available?
 }
 
-CamHDMovie CamHDClient::getMovie( const string &path )
+CamHDMovie CamHDClient::getMovie( const fs::path &url )
 {
-  fs::path moviePath( _baseURL );
-  moviePath /= fs::path(path);
 
   // Synchronous
-  HTTPRequest request( moviePath.string() );
+  HTTPRequest request( url.string() );
 
   HTTPResult result( request.result() );
 
   // Check status
   if( result.httpStatus == 200 ) {
-    return CamHDMovie( path, result.body );
+    return CamHDMovie( url.string(), result.body );
   }
 
 }

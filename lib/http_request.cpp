@@ -47,16 +47,18 @@ HTTPResult HTTPRequest::operator()( ) {
       // Request info
       _result.httpStatus = curlpp::infos::ResponseCode::get( request );
 
-      cout << "Set status to " << _result.httpStatus << endl;
+      //cout << "Set status to " << _result.httpStatus << endl;
 
       return result();
     }
     catch( cURLpp::RuntimeError &e ) {
-cout << "Runtime error: " << e.what() << endl;
+      cout << "Runtime error: " << e.what() << endl;
     }
     catch( cURLpp::LogicError &e ) {
       cout << "Logic error: " << e.what() << endl;
     }
+
+    return HTTPResult();
   }
 
 

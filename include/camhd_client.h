@@ -25,14 +25,14 @@ protected:
 class CamHDClient {
 public:
 
-  CamHDClient( const string &baseURL );
+  CamHDClient( );
 
-  CamHDMovie getMovie( const string &path );
-  cv::Mat getFrame( const CamHDMovie &movie, int frame );
+  static CamHDMovie getMovie( const fs::path &path );
+  static cv::Mat getFrame( const CamHDMovie &movie, int frame );
 
 protected:
 
-  fs::path _baseURL;
+  //fs::path _baseURL;
 
 };
 

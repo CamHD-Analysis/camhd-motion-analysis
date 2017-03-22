@@ -5,7 +5,7 @@
 
 #include <curlpp/cURLpp.hpp>
 
-#include "client.h"
+#include "camhd_client.h"
 
 #include "json.hpp"
 // for convenience
@@ -25,8 +25,6 @@ using namespace std;
 //using namespace cv;
 
 using namespace CamHDMotionTracking;
-
-#include "client.h"
 
 const string host = "camhd-app-dev.appspot.com";
 const string url = "/v1/org/oceanobservatories/rawdata/files/RS03ASHS/PN03B/06-CAMHDA301/2016/09/01/CAMHDA301-20160901T000000Z.mov";
