@@ -24,8 +24,7 @@ namespace CamHDMotionTracking {
   }
 
   template < typename T >
-  template < typename Y >
-  void Intervals<T>::bisect( std::function<bool(T,T)> plant, int maxDepth = -1, int depth )
+  void Intervals<T>::bisect( std::function<bool(T,T)> plant, int maxDepth, int depth )
  {
    if( depth > maxDepth ) {
      cout << "At max depth " << depth << ", stopping" << endl;

@@ -38,9 +38,9 @@ CamHDMovie CamHDClient::getMovie( const fs::path &url )
 
 cv::Mat CamHDClient::getFrame( const CamHDMovie &mov, int frame )
 {
-  // As a special case, if frame == mov.NumFrames(), return a black image
+  // As a special case, if frame > mov.NumFrames(), return a black image
   // (for now, query frame-1 for size and type)
-    if( frame == mov.numFrames() ) {
+    if( frame > mov.numFrames() || frame <= 0 ) {
       cv::Mat mat( CamHDClient::getFrame( mov, frame-1 ));
       return cv::Mat::zeros(mat.size(), mat.type());
     }
@@ -56,11 +56,11 @@ cv::Mat CamHDClient::getFrame( const CamHDMovie &mov, int frame )
 
     cv::Mat in( result.body.size(), 1, CV_8UC1, (void *)result.body.data());
 
-    cout << "In: " << in.cols << " x " << in.rows << endl;
+    //cout << "In: " << in.cols << " x " << in.rows << endl;
 
     cv::Mat out( cv::imdecode(in, cv::IMREAD_UNCHANGED ) );
 
-    cout << "Out: " << out.cols << " x " << out.rows << endl;
+    //cout << "Out: " << out.cols << " x " << out.rows << endl;
 
 
   return out;

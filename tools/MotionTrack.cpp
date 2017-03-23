@@ -33,15 +33,19 @@ struct FrameMean {
 		: _movie(mov)
 		{;}
 
+		// Defines a "soft equal"
 		bool operator()( int a, int b )
 			{ auto meanA = mean( a );
 			  auto meanB = mean( b );
 
-				return meanA - meanB; }
+				auto pct = fabs(1.0/meanA * (meanB - meanA) );
+
+				return pct < 0.05; }
 
 		float mean( int frameNum ) {
 			cv::Mat frame( CamHDClient::getFrame( _movie, frameNum ));
 			cv::Mat reduced;
+
 			cv::resize( frame, reduced, cv::Size(0,0), 0.25, 0.25 );
 
 			auto m = cv::mean( reduced );
@@ -73,10 +77,13 @@ int main( int argc, char ** argv )
 
 	Intervals<int> timeline;
 
-	// Get the bookends
-	timeline.add( 0, movie.numFrames()  );
+	// Force some early bisection
+	auto middle = movie.numFrames()/2;
 
-	timeline.bisect<float>( FrameMean(movie), 1 );
+	timeline.add( 1, middle );
+	timeline.add( middle, movie.numFrames()+1 );
+
+	timeline.bisect( FrameMean(movie), 1 );
 
 	cout << "-- Results --" << endl << timeline << endl;
 

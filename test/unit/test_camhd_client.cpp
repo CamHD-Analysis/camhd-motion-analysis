@@ -49,7 +49,7 @@ TEST(test_camhd_client, test_get_last_frame) {
   ASSERT_GT( movie.duration(), 0.0 );
   ASSERT_GT( movie.numFrames(), 0 );
 
-  cv::Mat frame( CamHDClient::getFrame( movie, movie.numFrames() ));
+  cv::Mat frame( CamHDClient::getFrame( movie, movie.numFrames()+1 ));
 
   ASSERT_EQ( frame.rows, 1080 );
   ASSERT_EQ( frame.cols, 1920 );
