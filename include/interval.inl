@@ -24,7 +24,9 @@ namespace CamHDMotionTracking {
   }
 
   template < typename I >
-  void Intervals<I>::bisect() {
+  template <Y>
+  void Intervals<I>::bisect( std::unary_function<I,Y> plant )
+ {
     // First, determine if the interval needs to be bisected.
     for( auto i = _list.begin(); i < _list.end(); ++i ) {
     //   if( (*i).doBisect() ) {
