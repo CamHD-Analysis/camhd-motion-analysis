@@ -1,12 +1,12 @@
 #pragma once
 
-#include <vector>
+#include <list>
 #include <algorithm>
 #include <iostream>
 
 namespace CamHDMotionTracking {
 
-  using std::vector;
+  using std::list;
   using std::ostream;
   using std::cout;
   using std::endl;
@@ -22,7 +22,7 @@ namespace CamHDMotionTracking {
     const T &start() const { return _start; }
     const T &end() const {return _end; }
 
-    void reset( const T &start, const T &end )
+    void setBounds( const T &start, const T &end )
       { _start = start; _end = end; }
 
     T span() { return _end - _start; }
@@ -32,12 +32,16 @@ namespace CamHDMotionTracking {
     }
 
     Interval<T> bisect( ) {
-      auto split = middle( start(), end() );
-      if( split == start() || split == end() ) return *this;
+      T split = floor( 0.5 * (start() + end()) );
+      if( split <= start() || split+1 >= end() ) return *this;
 
       auto before = Interval<T>( start(), split );
-      reset( split, end() );
+      setBounds( split+1, end() );
       return before;
+    }
+
+    bool operator==( const Interval<T> &other ) {
+      return start() == other.start() && end() == other.end();
     }
 
   protected:
@@ -66,7 +70,7 @@ namespace CamHDMotionTracking {
   public:
 
     typedef Interval<T> Interval;
-    typedef std::vector<Interval> IntervalVec;
+    typedef std::list<Interval> IntervalVec;
 
     Intervals()
       : _list()
@@ -76,19 +80,21 @@ namespace CamHDMotionTracking {
 
       size_t size() const { return _list.size(); }
 
-      const Interval &operator[](size_t i) const {
-        return _list[i];
-      }
+      // const Interval &operator[](size_t i) const {
+      //   return _list[i];
+      // }
 
       typename IntervalVec::const_iterator begin() const { return _list.begin(); }
       typename IntervalVec::const_iterator end() const { return _list.end(); }
 
-      void bisect( std::function<bool(T,T)> plant, int maxDepth = -1, int depth = 0 );
+      void bisect( std::function<bool(T,T)> plant, int maxDepth = -1 );
 
 
       void dump();
 
   protected:
+
+    void doBisect( typename IntervalVec::iterator &i, std::function<bool(T,T)> plant, int maxDepth, int depth = 0 );
 
       IntervalVec _list;
   };

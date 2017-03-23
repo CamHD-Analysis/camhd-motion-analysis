@@ -38,7 +38,7 @@ struct FrameMean {
 			{ auto meanA = mean( a );
 			  auto meanB = mean( b );
 
-				auto pct = fabs(1.0/meanA * (meanB - meanA) );
+				auto pct = abs(1.0/meanA * (meanB - meanA) );
 
 				return pct < 0.05; }
 
@@ -81,7 +81,7 @@ int main( int argc, char ** argv )
 	auto middle = movie.numFrames()/2;
 
 	timeline.add( 1, middle );
-	timeline.add( middle, movie.numFrames()+1 );
+	timeline.add( middle, movie.numFrames() );
 
 	timeline.bisect( FrameMean(movie), 1 );
 
