@@ -22,6 +22,11 @@ namespace CamHDMotionTracking {
     const T &start() const { return _start; }
     const T &end() const {return _end; }
 
+    void reset( const T &start, const T &end )
+      { _start = start; _end = end; }
+
+    T span() { return _end - _start; }
+
     bool doBisect();
 
   protected:
@@ -40,8 +45,22 @@ namespace CamHDMotionTracking {
       return os;
   }
 
-template <typename T>
-bool equivalent( const T &a, const T &b ) { return a==b; }
+  template <typename T>
+  bool equivalent( const T &a, const T &b ) { return a==b; }
+
+  template <typename T>
+  T middle( const T &a, const T &b ) { return (a+b)/2; }
+
+  template <typename T>
+  Interval<T> bisectInterval( Interval<T> &a) {
+    auto split = middle( a.start(), a.end() );
+    if( split == a.start() || split == a.end() ) return a;
+
+    auto before = Interval<T>( a.start(), split );
+    a.reset( split, a.end() );
+    return before;
+  }
+
 
 
   template < typename E, typename I = Interval<E> >

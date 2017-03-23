@@ -13,6 +13,7 @@ namespace CamHDMotionTracking {
     return equivalent(_start,_end);
   }
 
+
   //===================
 
   template < typename E, typename I >
@@ -27,7 +28,9 @@ namespace CamHDMotionTracking {
     // First, determine if the interval needs to be bisected.
     for( auto i = _list.begin(); i < _list.end(); ++i ) {
       if( (*i).doBisect() ) {
-
+        auto before = bisectInterval( *i );
+        if( before == (*i) ) continue;
+        _list.insert( i, before );
       }
     }
   }
