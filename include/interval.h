@@ -11,12 +11,12 @@ namespace CamHDMotionTracking {
   using std::cout;
   using std::endl;
 
-  template <typename T, typename Y>
-  class NumericalInterval {
+  template <typename T>
+  class Interval {
   public:
 
-    NumericalInterval( const X &start, const X &end, std::UnaryFunction<T,Y> f )
-      : _start( start ), _end( end ), _func( f )
+    Interval( const T &start, const T &end )
+      : _start( start ), _end( end )
       {;}
 
     const T &start() const { return _start; }
@@ -27,15 +27,15 @@ namespace CamHDMotionTracking {
 
     T span() { return _end - _start; }
 
-    bool doBisect();
+    bool doBisect() {
+      return _start != _end;
+    }
 
-    T value( const Y &y ) { return _func(y); }
-
-    NumericalInterval<T> bisect( ) {
+    Interval<T> bisect( ) {
       auto split = middle( start(), end() );
       if( split == start() || split == end() ) return *this;
 
-      auto before = NumericalInterval<T>( start(), split );
+      auto before = Interval<T>( start(), split );
       reset( split, end() );
       return before;
     }
@@ -43,26 +43,25 @@ namespace CamHDMotionTracking {
   protected:
 
     T _start, _end;
-    std::UnaryFunction _func;
 
   };
 
   template <typename T>
-  bool operator<( const NumericalInterval<T> &a, const NumericalInterval<T> &b )
+  bool operator<( const Interval<T> &a, const Interval<T> &b )
     { return a.start() < b.start(); }
 
   template <typename T>
-  ostream& operator<<(ostream& os, const NumericalInterval<T>& a) {
+  ostream& operator<<(ostream& os, const Interval<T>& a) {
       os << a.start() << " -- " << a.end();
       return os;
   }
 
 
-  template <typename T>
-  T middle( const T &a, const T &b ) { return (a+b)/2; }
+  // template <typename T>
+  // T middle( const T &a, const T &b ) { return (a+b)/2; }
 
 
-  template < typename I = Interval<E> >
+  template < typename I >
   class Intervals {
   public:
 

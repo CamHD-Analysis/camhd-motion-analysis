@@ -6,6 +6,8 @@
 using namespace CamHDMotionTracking;
 
 
+
+
 TEST(test_interval, test_constructor) {
   const int start = 1, end = 100;
   Interval<int> a( start, end );
@@ -14,12 +16,13 @@ TEST(test_interval, test_constructor) {
   ASSERT_EQ( a.end(), end );
 }
 
+
 TEST(test_intervals, test_constructor) {
-  Intervals<int> list;
+  Intervals< Interval<int> > list;
   ASSERT_EQ( list.size(), 0 );
 
   const int start = 1, end = 10;
-  list.add( start, end );
+  list.add( Interval<int>(start,end) );
   ASSERT_EQ( list.size(), 1);
 
   ASSERT_EQ( list[0].start(), start );
