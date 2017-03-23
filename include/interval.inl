@@ -16,16 +16,16 @@ namespace CamHDMotionTracking {
 
   //===================
 
-  template < typename I >
-  void Intervals<I>::add( const I &interval ) {
+  template < typename T >
+  void Intervals<T>::add( const T &start, const T &end ) {
     // Save efficiency for later
-    _list.push_back( interval );
-      std::sort( _list.begin(), _list.end() );
+    _list.push_back( Interval(start, end) );
+    std::sort( _list.begin(), _list.end() );
   }
 
-  template < typename I >
-  template <Y>
-  void Intervals<I>::bisect( std::unary_function<I,Y> plant )
+  template < typename T >
+  template < typename Y >
+  void Intervals<T>::bisect( std::function<Y(T)> plant )
  {
     // First, determine if the interval needs to be bisected.
     for( auto i = _list.begin(); i < _list.end(); ++i ) {

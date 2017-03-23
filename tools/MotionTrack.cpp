@@ -28,6 +28,27 @@ const fs::path host( "https://camhd-app-dev.appspot.com");
 const fs::path url( "/v1/org/oceanobservatories/rawdata/files/RS03ASHS/PN03B/06-CAMHDA301/2016/09/01/CAMHDA301-20160901T000000Z.mov" );
 
 
+struct FrameMean {
+	FrameMean( const CamHDMovie &mov )
+		: _movie(mov)
+		{;}
+
+		float operator()( int frameNum )
+			{ return mean( frameNum ); }
+
+		float mean( int frameNum ) {
+			cv::Mat frame( CamHDClient::getFrame( _movie, frameNum ));
+			cv::Mat reduced;
+			cv::resize( frame, reduced, cv::Size(0,0), 0.25, 0.25 );
+
+			auto m = cv::mean( reduced );
+			return (m[0]+m[1]+m[2] )/ 3.0;
+		}
+
+		CamHDMovie _movie;
+};
+
+
 //namespace CamHDMotionTracking {
 //
 // struct Frame {
@@ -69,7 +90,7 @@ const fs::path url( "/v1/org/oceanobservatories/rawdata/files/RS03ASHS/PN03B/06-
 // }
 //
 
-typedef Interval<int> FrameInterval;
+//typedef Interval<int> FrameInterval;
 
 // class FrameInterval : public Interval<int> {
 // public:
@@ -101,12 +122,12 @@ int main( int argc, char ** argv )
 	// TODO.  Check for failure
 	LOG(INFO) << "File has " << movie.numFrames() << " frames";
 
-	Intervals< FrameInterval> timeline;
+	Intervals<int> timeline;
 
 	// Get the bookends
-	timeline.add( FrameInterval( 0, movie.numFrames() )  );
+	timeline.add( 0, movie.numFrames()  );
 
-	timeline.bisect();
+	timeline.bisect<float>( FrameMean(movie) );
 
 	cout << "-- Results --" << endl << timeline << endl;
 

@@ -61,36 +61,41 @@ namespace CamHDMotionTracking {
   // T middle( const T &a, const T &b ) { return (a+b)/2; }
 
 
-  template < typename I >
+  template < typename T >
   class Intervals {
   public:
+
+    typedef Interval<T> Interval;
+    typedef std::vector<Interval> IntervalVec;
 
     Intervals()
       : _list()
       {;}
 
-      void add( const I &interval );
+      void add( const T &a, const T &b );
 
       size_t size() const { return _list.size(); }
 
-      const I &operator[](size_t i) const {
+      const Interval &operator[](size_t i) const {
         return _list[i];
       }
 
-      typename vector< I >::const_iterator begin() const { return _list.begin(); }
-      typename vector< I >::const_iterator end() const { return _list.end(); }
+      typename IntervalVec::const_iterator begin() const { return _list.begin(); }
+      typename IntervalVec::const_iterator end() const { return _list.end(); }
+
+      template< typename Y>
+      void bisect( std::function<Y(T)> plant );
 
 
-      void bisect();
       void dump();
 
   protected:
 
-      vector< I > _list;
+      IntervalVec _list;
   };
 
-  template < typename I >
-  ostream& operator<<(ostream& os, const Intervals<I>& a)
+  template < typename T >
+  ostream& operator<<(ostream& os, const Intervals<T>& a)
   {
     os << "List has " << a.size() << " elements:" << endl;
     for( auto const &i : a ) {

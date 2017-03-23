@@ -18,11 +18,11 @@ TEST(test_interval, test_constructor) {
 
 
 TEST(test_intervals, test_constructor) {
-  Intervals< Interval<int> > list;
+  Intervals< int > list;
   ASSERT_EQ( list.size(), 0 );
 
   const int start = 1, end = 10;
-  list.add( Interval<int>(start,end) );
+  list.add( start, end );
   ASSERT_EQ( list.size(), 1);
 
   ASSERT_EQ( list[0].start(), start );
