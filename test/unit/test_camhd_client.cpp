@@ -24,8 +24,8 @@ TEST(test_camhd_client, test_make_frame_url) {
   std::stringstream urlStr;
   urlStr << TestJsonLazycache.string() << "/frame/" << frameNum;
 
-  cout << "frameUrl: " << frameUrl << endl;
-  cout << "url: " << urlStr.str() << endl;
+  // cout << "frameUrl: " << frameUrl << endl;
+  // cout << "url: " << urlStr.str() << endl;
   ASSERT_EQ( frameUrl.string(), urlStr.str() );
 }
 
@@ -41,4 +41,5 @@ TEST(test_camhd_client, test_get_Frame) {
 
   ASSERT_EQ( frame.rows, 1080 );
   ASSERT_EQ( frame.cols, 1920 );
+
 }

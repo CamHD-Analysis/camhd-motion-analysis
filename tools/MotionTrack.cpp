@@ -6,6 +6,7 @@
 #include <curlpp/cURLpp.hpp>
 
 #include "camhd_client.h"
+#include "interval.h"
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -25,64 +26,74 @@ using namespace CamHDMotionTracking;
 const fs::path host( "https://camhd-app-dev.appspot.com");
 const fs::path url( "/v1/org/oceanobservatories/rawdata/files/RS03ASHS/PN03B/06-CAMHDA301/2016/09/01/CAMHDA301-20160901T000000Z.mov" );
 
+
+namespace CamHDMotionTracking {
+
+struct Frame {
+	Frame( int fn, const cv::Mat &m )
+		: frameNum(fn), img(m)
+	{;}
+
+	int frameNum;
+	cv::Mat img;
+};
+
+bool operator<( const Frame &a, const Frame &b )
+{ return a.frameNum < b.frameNum; }
+
+ostream& operator<<(ostream& os, const Frame& a)
+{
+		os << "#" << a.frameNum;
+		return os;
+}
+
+}
+
 int main( int argc, char ** argv )
 {
 	auto worker = g3::LogWorker::createLogWorker();
+	auto handle= worker->addDefaultLogger(argv[0],".");
 	g3::initializeLogging(worker.get());
 
-	// Initialize curlpp
+	// RAAI initializer for curlpp
 	curlpp::Cleanup myCleanup;
 
-	//CamHD_MotionTracking::Config config( argc, argv );
 
-	//MotionTracking mt( config );
-	//mt();
-
-
-
-// 	CURL *conn = curl_easy_init();
-// 	curl_easy_setopt( conn, CURLOPT_FOLLOWLOCATION, 1 );
-//
 	fs::path videoUrl(host);
 	videoUrl /= url;
 // 	video_url += host + url;
 
-	auto movieInfo( CamHDClient::getMovie( videoUrl ) );
+	auto movie( CamHDClient::getMovie( videoUrl ) );
 
 	// TODO.  Check for failure
+	LOG(INFO) << "File has " << movie.numFrames() << " frames";
 
-	LOG(INFO) << "File has " << movieInfo.numFrames() << " frames";
+	Intervals<Frame> timeline;
+
+	// Get the bookends
+	cv::Mat zero( CamHDClient::getFrame( movie, 1 ) );
+	timeline.add( Frame( 0, zero ),
+ 								Frame( movie.numFrames(), cv::Mat::zeros( zero.size(), zero.type() )));
 
 
-// for( auto frame = 0; frame < maxFrames; frame += 100 ) {
-//
-//
-// 	stringstream frame_url;
-// 	frame_url << video_url << "/frame/" << (frame == 0 ? 1 : frame);
-//
-// 	LOG(INFO) << frame_url.str();
-//
-// 	curl_easy_setopt( conn, CURLOPT_URL, frame_url.str().c_str() );
-//
-// 	char frame_file[255];
-// 	sprintf(frame_file, "../../images/image_%08d.png", frame );
-//
-//
-// 	FILE *img_buf = fopen(frame_file, "w" ); //fmemopen( buf, 2048, "w");
-// 	curl_easy_setopt( conn, CURLOPT_WRITEDATA, img_buf );
-// 	ret = curl_easy_perform( conn );
-//
-// 	if( ret != CURLE_OK ) {
-// 		LOG(FATAL) << "CURL error, returned code: " << ret;
-// 	}
-// 	fclose(img_buf);
-//
-// 	cout << "Wrote to: " << frame_file << endl;
-//
-// }
-//
-//
-// 	curl_easy_cleanup(conn);
+	timeline.bisect();
+
+	cout << "-- Results --" << endl << timeline << endl;
+
+	// timeline.add( 0, movie.numFrames );
+	//
+	// // Start with basic survey
+	// const int step = 30;
+	//
+	// for( auto i = 0; i < movie.numFrames; i += step ) {
+	// 	cv::Mat frame( CamHDClient::getFrame( movie, i+1 ));
+	//
+	// 	// Decimate
+	// }
+
+
+
+
 
 	exit(0);
 }
