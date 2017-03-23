@@ -11,12 +11,12 @@ namespace CamHDMotionTracking {
   using std::cout;
   using std::endl;
 
-  template <typename T>
-  class Interval {
+  template <typename T, typename Y>
+  class NumericalInterval {
   public:
 
-    Interval( const T &start, const T &end )
-      : _start(start), _end(end)
+    NumericalInterval( const X &start, const X &end, std::UnaryFunction<T,Y> f )
+      : _start( start ), _end( end ), _func( f )
       {;}
 
     const T &start() const { return _start; }
@@ -29,41 +29,40 @@ namespace CamHDMotionTracking {
 
     bool doBisect();
 
+    T value( const Y &y ) { return _func(y); }
+
+    NumericalInterval<T> bisect( ) {
+      auto split = middle( start(), end() );
+      if( split == start() || split == end() ) return *this;
+
+      auto before = NumericalInterval<T>( start(), split );
+      reset( split, end() );
+      return before;
+    }
+
   protected:
 
     T _start, _end;
+    std::UnaryFunction _func;
 
   };
 
   template <typename T>
-  bool operator<( const Interval<T> &a, const Interval<T> &b )
+  bool operator<( const NumericalInterval<T> &a, const NumericalInterval<T> &b )
     { return a.start() < b.start(); }
 
   template <typename T>
-  ostream& operator<<(ostream& os, const Interval<T>& a) {
+  ostream& operator<<(ostream& os, const NumericalInterval<T>& a) {
       os << a.start() << " -- " << a.end();
       return os;
   }
 
-  template <typename T>
-  bool equivalent( const T &a, const T &b ) { return a==b; }
 
   template <typename T>
   T middle( const T &a, const T &b ) { return (a+b)/2; }
 
-  template <typename T>
-  Interval<T> bisectInterval( Interval<T> &a) {
-    auto split = middle( a.start(), a.end() );
-    if( split == a.start() || split == a.end() ) return a;
 
-    auto before = Interval<T>( a.start(), split );
-    a.reset( split, a.end() );
-    return before;
-  }
-
-
-
-  template < typename E, typename I = Interval<E> >
+  template < typename I = Interval<E> >
   class Intervals {
   public:
 
@@ -71,7 +70,7 @@ namespace CamHDMotionTracking {
       : _list()
       {;}
 
-      void add( const E &start, const E &end );
+      void add( const I &interval );
 
       size_t size() const { return _list.size(); }
 
@@ -91,8 +90,8 @@ namespace CamHDMotionTracking {
       vector< I > _list;
   };
 
-  template < typename E, typename I = Interval<E> >
-  ostream& operator<<(ostream& os, const Intervals<E,I>& a)
+  template < typename I >
+  ostream& operator<<(ostream& os, const Intervals<I>& a)
   {
     os << "List has " << a.size() << " elements:" << endl;
     for( auto const &i : a ) {

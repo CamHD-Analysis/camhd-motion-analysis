@@ -8,23 +8,23 @@ namespace CamHDMotionTracking {
 
   //===================
 
-  template <typename T>
-  bool Interval<T>::doBisect() {
+  template <typename X, typename Y>
+  bool NumericalInterval<X,Y>::doBisect() {
     return equivalent(_start,_end);
   }
 
 
   //===================
 
-  template < typename E, typename I >
-  void Intervals<E,I>::add( const E &start, const E &end ) {
+  template < typename I >
+  void Intervals<I>::add( const I &interval ) {
     // Save efficiency for later
-    _list.push_back( I(start, end) );
+    _list.push_back( interval );
       std::sort( _list.begin(), _list.end() );
   }
 
-  template < typename E, typename I >
-  void Intervals<E,I>::bisect() {
+  template < typename I >
+  void Intervals<I>::bisect() {
     // First, determine if the interval needs to be bisected.
     for( auto i = _list.begin(); i < _list.end(); ++i ) {
       if( (*i).doBisect() ) {
@@ -35,8 +35,8 @@ namespace CamHDMotionTracking {
     }
   }
 
-  template < typename E, typename I >
-  void Intervals<E,I>::dump() {
+  template < typename I >
+  void Intervals<I>::dump() {
     cout << "List has " << _list.size() << " elements:" << endl;
     for( auto i : _list ) {
       cout << "  " << i << endl;
