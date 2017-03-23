@@ -33,8 +33,11 @@ struct FrameMean {
 		: _movie(mov)
 		{;}
 
-		float operator()( int frameNum )
-			{ return mean( frameNum ); }
+		bool operator()( int a, int b )
+			{ auto meanA = mean( a );
+			  auto meanB = mean( b );
+
+				return meanA - meanB; }
 
 		float mean( int frameNum ) {
 			cv::Mat frame( CamHDClient::getFrame( _movie, frameNum ));
@@ -48,60 +51,6 @@ struct FrameMean {
 		CamHDMovie _movie;
 };
 
-
-//namespace CamHDMotionTracking {
-//
-// struct Frame {
-// 	Frame( const CamHDMovie &mov, int fn )
-// 		: movie(mov), frameNum(fn)
-// 	{;}
-//
-// 	const cv::Mat getFrame() {
-// 		return CamHDClient::getFrame( movie, frameNum );
-// 	}
-//
-// 	const cv::Mat reducedFrame() {
-// 		if( reduced.empty() ) {
-// 		cv::Mat full( getFrame() );
-//
-// 		cv::resize( full, reduced, cv::Size(), 0.25, 0.25 );
-// 		}
-//
-// 		return reduced;
-// 	}
-//
-// 	cv::Scalar mean() {
-// 		return cv::mean( reduced );
-// 	}
-//
-// 	CamHDMovie movie;
-// 	int frameNum;
-// 	cv::Mat reduced;
-//
-// };
-//
-// bool operator<( const Frame &a, const Frame &b )
-// { return a.frameNum < b.frameNum; }
-//
-// ostream& operator<<(ostream& os, const Frame& a)
-// {
-// 		os << "#" << a.frameNum;
-// 		return os;
-// }
-//
-
-//typedef Interval<int> FrameInterval;
-
-// class FrameInterval : public Interval<int> {
-// public:
-//
-// 	FrameInterval( const Frame &start, const Frame &end )
-// 		: Interval<int>(start.frameNum, end.frameNum)
-// 		{;}
-//
-// protected:
-//
-// };
 
 int main( int argc, char ** argv )
 {
@@ -127,7 +76,7 @@ int main( int argc, char ** argv )
 	// Get the bookends
 	timeline.add( 0, movie.numFrames()  );
 
-	timeline.bisect<float>( FrameMean(movie) );
+	timeline.bisect<float>( FrameMean(movie), 1 );
 
 	cout << "-- Results --" << endl << timeline << endl;
 

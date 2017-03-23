@@ -25,10 +25,20 @@ namespace CamHDMotionTracking {
 
   template < typename T >
   template < typename Y >
-  void Intervals<T>::bisect( std::function<Y(T)> plant )
+  void Intervals<T>::bisect( std::function<bool(T,T)> plant, int maxDepth = -1, int depth )
  {
+   if( depth > maxDepth ) {
+     cout << "At max depth " << depth << ", stopping" << endl;
+     return;
+   }
+
     // First, determine if the interval needs to be bisected.
     for( auto i = _list.begin(); i < _list.end(); ++i ) {
+      if( !plant( (*i).start(), (*i).end() ) ) {
+        cout << "Bisect the set " << (*i) << "!" << endl;
+      } else {
+        cout << "Not bisecting " << (*i) << endl;
+      }
     //   if( (*i).doBisect() ) {
     //     auto before = bisectInterval( *i );
     //     if( before == (*i) ) continue;

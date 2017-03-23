@@ -83,8 +83,7 @@ namespace CamHDMotionTracking {
       typename IntervalVec::const_iterator begin() const { return _list.begin(); }
       typename IntervalVec::const_iterator end() const { return _list.end(); }
 
-      template< typename Y>
-      void bisect( std::function<Y(T)> plant );
+      void bisect( std::function<bool(T,T)> plant, int maxDepth = -1, int depth = 0 );
 
 
       void dump();
