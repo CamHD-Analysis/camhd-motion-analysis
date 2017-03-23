@@ -30,7 +30,7 @@ TEST(test_camhd_client, test_make_frame_url) {
 }
 
 
-TEST(test_camhd_client, test_get_Frame) {
+TEST(test_camhd_client, test_get_frame) {
   auto movie( CamHDClient::getMovie( TestJsonLazycache ) );
 
   ASSERT_GT( movie.duration(), 0.0 );
@@ -41,5 +41,23 @@ TEST(test_camhd_client, test_get_Frame) {
 
   ASSERT_EQ( frame.rows, 1080 );
   ASSERT_EQ( frame.cols, 1920 );
+}
 
+TEST(test_camhd_client, test_get_last_frame) {
+  auto movie( CamHDClient::getMovie( TestJsonLazycache ) );
+
+  ASSERT_GT( movie.duration(), 0.0 );
+  ASSERT_GT( movie.numFrames(), 0 );
+
+  cv::Mat frame( CamHDClient::getFrame( movie, movie.numFrames() ));
+
+  ASSERT_EQ( frame.rows, 1080 );
+  ASSERT_EQ( frame.cols, 1920 );
+
+  // Check that it's black
+  auto m = cv::mean( frame );
+  ASSERT_FLOAT_EQ( m[0], 0.0 );
+  ASSERT_FLOAT_EQ( m[1], 0.0 );
+  ASSERT_FLOAT_EQ( m[2], 0.0 );
+  ASSERT_FLOAT_EQ( m[3], 0.0 );
 }

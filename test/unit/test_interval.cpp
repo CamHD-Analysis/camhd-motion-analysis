@@ -18,7 +18,7 @@ TEST(test_intervals, test_constructor) {
   Intervals<int> list;
   ASSERT_EQ( list.size(), 0 );
 
-  const int start = 1, end = 100;
+  const int start = 1, end = 10;
   list.add( start, end );
   ASSERT_EQ( list.size(), 1);
 

@@ -8,8 +8,9 @@
 #include "camhd_client.h"
 #include "interval.h"
 
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 
 //#include "MotionTrack/MotionTracking.h"
 
@@ -30,12 +31,32 @@ const fs::path url( "/v1/org/oceanobservatories/rawdata/files/RS03ASHS/PN03B/06-
 namespace CamHDMotionTracking {
 
 struct Frame {
-	Frame( int fn, const cv::Mat &m )
-		: frameNum(fn), img(m)
+	Frame( const CamHDMovie &mov, int fn )
+		: movie(mov), frameNum(fn)
 	{;}
 
+	const cv::Mat getFrame() {
+		return CamHDClient::getFrame( movie, frameNum );
+	}
+
+	const cv::Mat reducedFrame() {
+		if( reduced.empty() ) {
+		cv::Mat full( getFrame() );
+
+		cv::resize( full, reduced, cv::Size(), 0.25, 0.25 );
+		}
+
+		return reduced;
+	}
+
+	cv::Scalar mean() {
+		return cv::mean( reduced );
+	}
+
+	CamHDMovie movie;
 	int frameNum;
-	cv::Mat img;
+	cv::Mat reduced;
+
 };
 
 bool operator<( const Frame &a, const Frame &b )
@@ -46,6 +67,17 @@ ostream& operator<<(ostream& os, const Frame& a)
 		os << "#" << a.frameNum;
 		return os;
 }
+
+class FrameInterval : public Interval<int> {
+public:
+
+	FrameInterval( const Frame &start, const Frame &end )
+		: Interval<int>(start.frameNum, end.frameNum)
+		{;}
+
+protected:
+
+};
 
 }
 
@@ -68,13 +100,11 @@ int main( int argc, char ** argv )
 	// TODO.  Check for failure
 	LOG(INFO) << "File has " << movie.numFrames() << " frames";
 
-	Intervals<Frame> timeline;
+	Intervals<Frame, FrameInterval> timeline;
 
 	// Get the bookends
-	cv::Mat zero( CamHDClient::getFrame( movie, 1 ) );
-	timeline.add( Frame( 0, zero ),
- 								Frame( movie.numFrames(), cv::Mat::zeros( zero.size(), zero.type() )));
-
+	timeline.add( Frame( movie, 0 ),
+ 								Frame( movie, movie.numFrames() ) );
 
 	timeline.bisect();
 

@@ -22,6 +22,8 @@ namespace CamHDMotionTracking {
     const T &start() const { return _start; }
     const T &end() const {return _end; }
 
+    bool doBisect();
+
   protected:
 
     T _start, _end;
@@ -37,6 +39,9 @@ namespace CamHDMotionTracking {
       os << a.start() << " -- " << a.end();
       return os;
   }
+
+template <typename T>
+bool equivalent( const T &a, const T &b ) { return a==b; }
 
 
   template < typename E, typename I = Interval<E> >

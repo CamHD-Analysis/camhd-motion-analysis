@@ -38,6 +38,13 @@ CamHDMovie CamHDClient::getMovie( const fs::path &url )
 
 cv::Mat CamHDClient::getFrame( const CamHDMovie &mov, int frame )
 {
+  // As a special case, if frame == mov.NumFrames(), return a black image
+  // (for now, query frame-1 for size and type)
+    if( frame == mov.numFrames() ) {
+      cv::Mat mat( CamHDClient::getFrame( mov, frame-1 ));
+      return cv::Mat::zeros(mat.size(), mat.type());
+    }
+
     fs::path url( CamHDClient::makeFrameURL(mov, frame));
 
     auto result( HTTPRequest::Get( url.string() ) );
