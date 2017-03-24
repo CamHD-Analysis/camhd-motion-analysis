@@ -6,29 +6,28 @@ include_directories(
 
 link_directories( ${CONAN_LIBRARY_DIR} )
 
-set( COMMON_LIBRARIES
-      camhd_motrack
-      -lcurl
-      ${CONAN_LIBS}
-      ${OpenCV_LIBRARIES}
-      ${Boost_LIBRARIES} )
+set( TOOLS_LIBRARIES
+  camhd_motrack
+  ${COMMON_LIBRARIES}
+  )
 
-add_executable(timelapse TimeLapse.cpp )
-target_link_libraries( timelapse
-            ${COMMON_LIBRARIES} )
-
-
-add_executable(sequence Sequence.cpp )
-target_link_libraries( sequence
-            ${COMMON_LIBRARIES} )
-
-# add_executable(optical_flow OpticalFlow.cpp )
-# target_link_libraries( optical_flow
+# add_executable(timelapse TimeLapse.cpp )
+# target_link_libraries( timelapse
+#             ${COMMON_LIBRARIES} )
+#
+#
+# add_executable(sequence Sequence.cpp )
+# target_link_libraries( sequence
 #             ${COMMON_LIBRARIES} )
 
-# if( USE_GPU )
-# 	add_executable(motrack_gpu MotionTrackGpu.cpp )
-# 	target_link_libraries( motrack_gpu
-#     camhd_motrack
-#             ${COMMON_LIBRARIES} )
-# endif()
+
+add_executable(motrack motion_track.cpp )
+target_link_libraries( motrack
+${TOOLS_LIBRARIES}
+)
+
+
+add_executable(frame_stats frame_stats.cpp )
+target_link_libraries( frame_stats
+  ${TOOLS_LIBRARIES}
+ )
