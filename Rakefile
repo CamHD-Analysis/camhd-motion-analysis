@@ -74,13 +74,23 @@ end
 
 
 namespace :timelapse do
+  task :get do
+    sh "rm -f timelapse/*"
+    sh "time build-Debug/bin/timelapse"
+  end
+
   task :encode do
     sh "cat timelapse/*.png | ffmpeg -y -framerate 2 -f image2pipe -i -  -pix_fmt yuv420p timelapse.mov"
   end
 end
 
 namespace :sequence do
+  task :get do
+    sh "rm -f sequence/*"
+    sh "time build-Debug/bin/sequence"
+  end
+
   task :encode do
-    sh "cat sequence/*.png | ffmpeg -y -framerate 1 -f image2pipe -i - -pix_fmt yuv420p sequence.mov"
+    sh "cat sequence/*.png | ffmpeg -y -framerate 3 -f image2pipe -i - -pix_fmt yuv420p sequence.mov"
   end
 end

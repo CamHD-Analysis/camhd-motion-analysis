@@ -79,7 +79,7 @@ int main( int argc, char ** argv )
 LOG(INFO) << "File has " << maxFrames << " frames";
 
 
-for( auto frame = 0; frame < maxFrames; frame += 100 ) {
+for( auto frame = 0; frame < maxFrames; frame += 30 ) {
 
 
 	stringstream frame_url;
@@ -104,6 +104,14 @@ for( auto frame = 0; frame < maxFrames; frame += 100 ) {
 	fclose(img_buf);
 
 	cout << "Wrote to: " << frame_file << endl;
+
+	char buf[256];
+	sprintf( buf, "% 8d", frame);
+
+	// Now annotate in opencv2
+	auto mat = cv::imread( frame_file );
+	cv::putText( mat, buf, cv::Point(10,50), cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255,255,255,0));
+	cv::imwrite( frame_file, mat );
 
 }
 

@@ -26,7 +26,7 @@ using namespace std;
 //using namespace CamHD_MotionTracking;
 
 const string host = "camhd-app-dev.appspot.com";
-const string url = "/v1/org/oceanobservatories/rawdata/files/RS03ASHS/PN03B/06-CAMHDA301/2016/10/01/";
+const string url = "/v1/org/oceanobservatories/rawdata/files/RS03ASHS/PN03B/06-CAMHDA301/2016/05/";
 
 int main( int argc, char ** argv )
 {
@@ -70,6 +70,47 @@ int main( int argc, char ** argv )
 	json j3;
 	json_stream >> j3;
 
+	std::vector< std::string > dirs;
+
+	if (j3.find("Directories") != j3.end()) {
+		auto jFiles = j3["Directories"].get< vector<string> >();
+		std::copy( jFiles.begin(), jFiles.end(), std::back_inserter(dirs) );
+	}
+
+	for( auto day : dirs ) {
+
+
+		string day_url( video_url + day );
+		LOG(INFO) << "Retrieving day " << day_url;
+
+		curl_easy_setopt( conn, CURLOPT_URL, day_url.c_str() );
+
+		// Store JSON to buffer
+
+		char day_json[256];
+		sprintf(day_json, "/tmp/json_%d.json", atoi(day.c_str()) );
+		FILE *json_buf = fopen(day_json, "w" ); //fmemopen( buf, 2048, "w");
+
+		//curl_easy_setopt( conn, CURLOPT_WRITEFUNCTION, NULL );
+		curl_easy_setopt( conn, CURLOPT_WRITEDATA, json_buf );
+		//curl_easy_setopt( conn, CURLOPT_MAXFILESIZE, 2047 );
+
+		CURLcode ret = curl_easy_perform( conn );
+
+		if( ret != CURLE_OK ) {
+			LOG(FATAL) << "CURL error, returned code: " << ret;
+		}
+
+		// Ugliness
+		fclose( json_buf );
+
+		auto json_stream = ifstream( day_json );
+
+		LOG(INFO) << "CURL return value: " << ret;
+
+		json j3;
+		json_stream >> j3;
+
 	std::vector< std::string > files;
 
 	if (j3.find("Files") != j3.end()) {
@@ -84,7 +125,7 @@ int main( int argc, char ** argv )
 		const int frame = 12500;
 
 	stringstream frame_url;
-	frame_url << video_url << file << "/frame/" << (frame == 0 ? 1 : frame);
+	frame_url << day_url << file << "/frame/" << (frame == 0 ? 1 : frame);
 
 	LOG(INFO) << frame_url.str();
 
@@ -95,7 +136,6 @@ int main( int argc, char ** argv )
 	sprintf(frame_file, "%s/%s_%d.png", destDir.c_str(), file.c_str(), frame );
 
 	LOG(INFO) << "Saving image to " << frame_file;
-
 
 	FILE *img_buf = fopen(frame_file, "w" ); //fmemopen( buf, 2048, "w");
 	curl_easy_setopt( conn, CURLOPT_WRITEDATA, img_buf );
@@ -108,6 +148,21 @@ int main( int argc, char ** argv )
 
 	cout << "Wrote to: " << frame_file << endl;
 
+
+	// Now annotate in opencv2
+	auto mat = cv::imread( frame_file );
+	if( mat.rows > 0 && mat.cols > 0 ) {
+
+	cv::putText( mat, file, cv::Point(10,50), cv::FONT_HERSHEY_COMPLEX, 1, cv::Scalar(255,255,255,0));
+	cv::imwrite( frame_file, mat );
+} else {
+	LOG(INFO) << "Zero length file, deleting " << frame_file;
+	remove( frame_file );
+}
+
+
+
+}
 }
 
 
