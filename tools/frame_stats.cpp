@@ -96,7 +96,8 @@ curlpp::Cleanup cleanup;
 	for( auto i = 0; i < stopAt; i += stride ) {
 		auto frame = (i==0 ? 1 : i);
 		LOG(INFO) << "Processing frame " << frame;
-		jsonStats.push_back( stats(frame) );
+		json j( stats(frame) );
+		if( !j.empty() ) jsonStats.push_back( j );
 	}
 
 

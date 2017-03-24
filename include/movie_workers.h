@@ -74,6 +74,8 @@ namespace CamHDMotionTracking {
       cv::Mat frame( CamHDClient::getFrame( _movie, frameNum ));
       cv::Mat reduced;
 
+      if( frame.empty() ) return cv::Mat();
+
       cv::resize( frame, reduced, cv::Size(0,0), 0.25, 0.25 );
       return reduced;
     }
@@ -105,6 +107,8 @@ namespace CamHDMotionTracking {
     {
       json stats;
       cv::Mat img( get(f) );
+      if( img.empty() ) return stats;
+
       stats["frameNum"] = f;
 
       Scalar mean, stdDev;
