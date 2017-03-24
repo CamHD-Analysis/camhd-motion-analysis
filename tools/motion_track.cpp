@@ -1,23 +1,17 @@
 #include <string>
 #include <fstream>
 #include <sstream>
-//#include <curl/curl.h>
 
 #include <curlpp/cURLpp.hpp>
 
 #include "camhd_client.h"
 #include "interval.h"
 
-#include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
 
-//#include "MotionTrack/MotionTracking.h"
 
-#include <g3log/g3log.hpp>
-#include <g3log/logworker.hpp>
-
-//#include "kbhit.h"
+#include "common_init.h"
+#include "movie_workers.h"
 
 using namespace std;
 //using namespace cv;
@@ -28,42 +22,11 @@ const fs::path host( "https://camhd-app-dev.appspot.com");
 const fs::path url( "/v1/org/oceanobservatories/rawdata/files/RS03ASHS/PN03B/06-CAMHDA301/2016/09/01/CAMHDA301-20160901T000000Z.mov" );
 
 
-struct FrameMean {
-	FrameMean( const CamHDMovie &mov )
-		: _movie(mov)
-		{;}
-
-		// Defines a "soft equal"
-		bool operator()( int a, int b )
-			{ auto meanA = mean( a );
-			  auto meanB = mean( b );
-
-				auto pct = abs(1.0/meanA * (meanB - meanA) );
-
-				return pct < 0.05; }
-
-		float mean( int frameNum ) {
-			cv::Mat frame( CamHDClient::getFrame( _movie, frameNum ));
-			cv::Mat reduced;
-
-			cv::resize( frame, reduced, cv::Size(0,0), 0.25, 0.25 );
-
-			auto m = cv::mean( reduced );
-			return (m[0]+m[1]+m[2] )/ 3.0;
-		}
-
-		CamHDMovie _movie;
-};
-
 
 int main( int argc, char ** argv )
 {
-	auto worker = g3::LogWorker::createLogWorker();
-	auto handle= worker->addDefaultLogger(argv[0],".");
-	g3::initializeLogging(worker.get());
+	auto cleanup = commonInit(argv[0]);
 
-	// RAAI initializer for curlpp
-	curlpp::Cleanup myCleanup;
 
 
 	fs::path videoUrl(host);
@@ -79,11 +42,12 @@ int main( int argc, char ** argv )
 
 	// Force some early bisection
 	auto middle = movie.numFrames()/2;
-
 	timeline.add( 1, middle );
 	timeline.add( middle, movie.numFrames() );
 
-	timeline.bisect( FrameMean(movie), 1 );
+
+ const int maxDepth = 10;
+	timeline.bisect( CamHDMotionTracking::FrameMean(movie), 10 );
 
 	cout << "-- Results --" << endl << timeline << endl;
 

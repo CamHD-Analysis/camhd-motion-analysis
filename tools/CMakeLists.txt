@@ -11,14 +11,14 @@ set( TOOLS_LIBRARIES
   ${COMMON_LIBRARIES}
   )
 
-add_executable(motrack MotionTrack.cpp )
+add_executable(motrack motion_track.cpp )
 target_link_libraries( motrack
 ${TOOLS_LIBRARIES}
 )
 
 
-add_executable(optical_flow OpticalFlow.cpp )
-target_link_libraries( optical_flow
+add_executable(frame_stats frame_stats.cpp )
+target_link_libraries( frame_stats
   ${TOOLS_LIBRARIES}
  )
 

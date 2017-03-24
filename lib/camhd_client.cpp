@@ -30,7 +30,8 @@ CamHDMovie CamHDClient::getMovie( const fs::path &url )
 
   // Check status
   if( result.httpStatus == 200 ) {
-    return CamHDMovie( url.string(), result.body );
+   CamHDMovie mov( url.string(), result.body );
+   return mov;
   }
 
   return CamHDMovie();
@@ -41,7 +42,7 @@ cv::Mat CamHDClient::getFrame( const CamHDMovie &mov, int frame )
   // As a special case, if frame > mov.NumFrames(), return a black image
   // (for now, query frame-1 for size and type)
     if( frame > mov.numFrames() || frame <= 0 ) {
-      cv::Mat mat( CamHDClient::getFrame( mov, frame-1 ));
+      cv::Mat mat( CamHDClient::getFrame( mov, 1 ));
       return cv::Mat::zeros(mat.size(), mat.type());
     }
 
@@ -70,7 +71,7 @@ cv::Mat CamHDClient::getFrame( const CamHDMovie &mov, int frame )
 fs::path CamHDClient::makeFrameURL( const CamHDMovie &mov, int frame )
 {
   // Assemble an URL
-  fs::path frameUrl( mov.url() );
+  fs::path frameUrl( mov.cacheUrl() );
   frameUrl /= "frame";
 
   std::stringstream fNumStr;

@@ -10,31 +10,30 @@ using namespace std;
 
 TEST(test_camhd_client, test_get_movie) {
   auto movie( CamHDClient::getMovie( TestJsonLazycache ) );
+
+  ASSERT_EQ( movie.cacheUrl(), TestJsonLazycache.string() );
+  ASSERT_EQ( movie.originalUrl(), TestJsonUrl.string() );
+  ASSERT_EQ( movie.duration(), TestJsonDuration );
+  ASSERT_EQ( movie.numFrames(), TestJsonNumFrames );
 }
 
 TEST(test_camhd_client, test_make_frame_url) {
   auto movie( CamHDClient::getMovie( TestJsonLazycache ) );
 
-  ASSERT_GT( movie.duration(), 0.0 );
-  ASSERT_GT( movie.numFrames(), 0 );
-
   const int frameNum = 1000;
   fs::path frameUrl( CamHDClient::makeFrameURL( movie, frameNum ));
 
-  std::stringstream urlStr;
-  urlStr << TestJsonLazycache.string() << "/frame/" << frameNum;
+  std::stringstream truthStr;
+  truthStr << TestJsonLazycache.string() << "/frame/" << frameNum;
 
   // cout << "frameUrl: " << frameUrl << endl;
   // cout << "url: " << urlStr.str() << endl;
-  ASSERT_EQ( frameUrl.string(), urlStr.str() );
+  ASSERT_EQ( frameUrl.string(), truthStr.str() );
 }
 
 
 TEST(test_camhd_client, test_get_frame) {
   auto movie( CamHDClient::getMovie( TestJsonLazycache ) );
-
-  ASSERT_GT( movie.duration(), 0.0 );
-  ASSERT_GT( movie.numFrames(), 0 );
 
   const int frameNum = 1000;
   cv::Mat frame( CamHDClient::getFrame( movie, frameNum ));
