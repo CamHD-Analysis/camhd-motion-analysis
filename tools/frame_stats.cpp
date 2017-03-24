@@ -33,7 +33,9 @@ int main( int argc, char ** argv )
 	auto cleanup = commonInit(argv[0]);
 
 	fs::path cacheURL;
-	std::vector<fs::path> moviePaths;
+	std::vector<std::string> moviePaths;
+	// Set a default for testing
+
 	fs::path jsonOut;
 	int stopAt = -1;
 	int stride = 5000;
@@ -41,6 +43,7 @@ int main( int argc, char ** argv )
 	try {
 		TCLAP::CmdLine cmd("Command description message", ' ', "0.0");
 
+		TCLAP::UnlabeledMultiArg<std::string> pathsArg("paths","Paths",true,"Paths",cmd);
 		TCLAP::ValueArg<std::string> jsonOutArg("o", "output", "File for JSON output (leave blank for stdout)", false,jsonOut.string(), "filename", cmd );
 		TCLAP::ValueArg<std::string> hostArg("","host","URL to host",false,DefaultCacheURL.string(),"url",cmd);
 		TCLAP::ValueArg<int> stopAtArg("","stop-at","",false,stopAt,"frame number",cmd);
@@ -56,14 +59,15 @@ int main( int argc, char ** argv )
 		stopAt = stopAtArg.getValue();
 		stride = strideArg.getValue();
 
+			moviePaths = pathsArg.getValue();
+
 	} catch (TCLAP::ArgException &e)  {
 		LOG(FATAL) << "error: " << e.error() << " for arg " << e.argId();
 	}
 
+	json top;
 
-	// for( auto thisPath : moviePaths ) {
-
-	auto thisPath = DefaultPath;
+	for( auto thisPath : moviePaths ) {
 
 	fs::path movURL( cacheURL );
 	movURL /= thisPath;
@@ -90,12 +94,16 @@ int main( int argc, char ** argv )
 		jsonStats.push_back( stats(frame) );
 	}
 
+	json mov;
+	mov["movie"] = movie;
 
-	json top;
-	top["movie"] = movie;
+	mov["stats"] = jsonStats;
 
-	top["stats"] = jsonStats;
 
+	top.push_back(mov);
+
+
+}
 
 	if( jsonOut.size() > 0 ) {
 		ofstream f( jsonOut.string() );
