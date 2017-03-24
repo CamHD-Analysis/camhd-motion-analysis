@@ -1,16 +1,17 @@
 from conans import ConanFile, CMake
 
-class LibVideiIOConan(ConanFile):
+class LibMotionTracking(ConanFile):
   name = "libvideoio"
   version = "0.1"
   settings = "os", "compiler", "build_type", "arch"
   generators = "cmake"
   options = {"opencv_dir": "ANY",  "build_parallel": [True, False]}
   default_options = "opencv_dir=''", "build_parallel=True"
-  requires =  "libvideoio/master@amarburg/testing"
-
+  requires =  "TCLAP/master@jmmut/testing", \
+              "g3log/master@amarburg/testing"
+              
   def config(self):
-    self.options["libvideoio"].opencv_dir = self.options.opencv_dir
+    #self.options[""].opencv_dir = self.options.opencv_dir
 
     if self.scope.dev and self.scope.build_tests:
       self.requires( "gtest/1.8.0@lasote/stable" )

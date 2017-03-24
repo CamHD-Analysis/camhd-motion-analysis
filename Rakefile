@@ -1,4 +1,7 @@
 
+$:.unshift File.dirname(__FILE__) + "/tasks"
+require 'docker'
+
 task :default => "debug:test"
 
 @conan_opts = {  build_parallel: 'False' }
@@ -8,7 +11,8 @@ task :default => "debug:test"
 load 'config.rb' if FileTest.readable? 'config.rb'
 
 
-['Debug','Release'].each { |build_type|
+buildTypes =  ['Debug','Release']
+buildTypes.each { |build_type|
   namespace build_type.downcase.to_sym do
     build_dir = ENV['BUILD_DIR'] || "build-#{build_type}"
 
@@ -31,6 +35,9 @@ load 'config.rb' if FileTest.readable? 'config.rb'
     end
   end
 }
+
+## Import the Docker taskjs
+DockerTasks.new( builds: buildTypes.map(&:downcase)  )
 
 task :distclean do
   sh "rm -rf build-*"
