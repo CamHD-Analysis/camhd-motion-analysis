@@ -21,6 +21,8 @@ namespace CamHDMotionTracking {
     : _movie(mov)
     {;}
 
+    virtual const string jsonName() = 0;
+
     // Thin convenience wrapper around process()
     json operator()( int f )
     { return process(f); }

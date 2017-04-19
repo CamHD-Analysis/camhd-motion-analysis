@@ -80,10 +80,14 @@ namespace CamHDMotionTracking {
         _flowAlgorithm( cv::createOptFlow_DualTVL1() )
     {;}
 
+    virtual const string jsonName()
+    { return "similarity"; }
+
 
     virtual json process( int f )
     {
       json stats;
+      stats["valid"] = false;
 
       // Determine the bounds
       const int delta = 1;
@@ -112,6 +116,16 @@ namespace CamHDMotionTracking {
       cv::Mat f1Grey, f2Grey;
       cv::cvtColor( f1, f1Grey, CV_RGB2GRAY );
       cv::cvtColor( f2, f2Grey, CV_RGB2GRAY );
+
+      // Do some heuristics
+      Scalar mean[2];
+      mean[0] = cv::mean( f1 );
+      mean[1] = cv::mean( f2 );
+
+      const int darknessThreshold = 5;
+      if( mean[0][0] < darknessThreshold || mean[1][0] < darknessThreshold ) {
+        return stats;
+      }
 
       cv::Mat flow( f1Grey.size(), CV_32FC2 );
       _flowAlgorithm->calc( f1Grey, f2Grey, flow );
@@ -156,6 +170,7 @@ namespace CamHDMotionTracking {
       stats["flowScale"] = flowScale;
       stats["rawSim"] = similarity;
       stats["scaledSim"] = scaledSim;
+      stats["valid"] = true;
 
       return stats;
     }

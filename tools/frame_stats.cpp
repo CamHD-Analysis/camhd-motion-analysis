@@ -117,9 +117,10 @@ int main( int argc, char ** argv )
 	// TODO.  Check for failure
 	LOG(INFO) << "File has " << movie.numFrames() << " frames";
 
-	std::shared_ptr< FrameProcessor > processor;
+	std::vector< std::shared_ptr< FrameProcessor > > processors;
 	//processor = new FrameStatistics stats(movie);
-	processor.reset( new ApproxDerivative(movie) );
+	processors.emplace_back( new ApproxDerivative(movie) );
+	processors.emplace_back( new FrameStatistics(movie) );
 
 	json jsonStats;
 
@@ -129,7 +130,14 @@ int main( int argc, char ** argv )
 	for( auto i = startAt; i < stopAt; i += config.stride ) {
 		auto frame = (i==0 ? 1 : i);
 		LOG(INFO) << "Processing frame " << frame;
-		json j( (*processor)(frame) );
+		json j;
+
+    j["frameNum"] = i;
+
+		for( auto proc : processors ) {
+			j[proc->jsonName()] = proc->process(frame);
+		}
+
 		if( !j.empty() ) jsonStats.push_back( j );
 	}
 
