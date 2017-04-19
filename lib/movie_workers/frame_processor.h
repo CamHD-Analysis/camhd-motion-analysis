@@ -21,10 +21,16 @@ namespace CamHDMotionTracking {
     : _movie(mov)
     {;}
 
+    // Thin convenience wrapper around process()
+    json operator()( int f )
+    { return process(f); }
+
+    virtual json process( int f ) = 0;
+
 
     bool compare( int a, int b ) {
 
-      cv::Mat imgA( get(a) ), imgB( get(b) );
+      cv::Mat imgA( getFrame(a) ), imgB( getFrame(b) );
 
       float meanA = cv::mean( cv::mean( imgA ) )[0];
       float meanB = cv::mean( cv::mean( imgB ) )[0];
@@ -70,13 +76,13 @@ namespace CamHDMotionTracking {
 
                       }
 
-    cv::Mat get( int frameNum ) {
+    cv::Mat getFrame( int frameNum, float scale = 0.25 ) {
       cv::Mat frame( CamHDClient::getFrame( _movie, frameNum ));
       cv::Mat reduced;
 
       if( frame.empty() ) return cv::Mat();
 
-      cv::resize( frame, reduced, cv::Size(0,0), 0.25, 0.25 );
+      cv::resize( frame, reduced, cv::Size(0,0), scale, scale );
       return reduced;
     }
 
@@ -85,5 +91,5 @@ namespace CamHDMotionTracking {
 
     CamHDMovie _movie;
   };
-  
+
 }

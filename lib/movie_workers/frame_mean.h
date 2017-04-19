@@ -19,9 +19,13 @@ namespace CamHDMotionTracking {
     : FrameProcessor(mov)
     {;}
 
-    // Defines a "soft equal"
-    bool operator()( int a, int b )
-    { return compare( a, b ); }
+    json process( int f ) {
+      return json();
+    }
+
+    // // Defines a "soft equal"
+    // bool operator()( int a, int b )
+    // { return compare( a, b ); }
 
   };
 

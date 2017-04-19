@@ -15,6 +15,7 @@
 #include "movie_workers/frame_processor.h"
 #include "movie_workers/frame_mean.h"
 #include "movie_workers/frame_statistics.h"
+#include "movie_workers/approx_derivative.h"
 
 #include "json.hpp"
 using json = nlohmann::json;
@@ -31,24 +32,28 @@ public:
 	FrameStatsConfig()
 	{}
 
-
 		bool parseArgs( int argc, char **argv )
 		{
 			try {
 				TCLAP::CmdLine cmd("Command description message", ' ', "0.0");
 
 				TCLAP::UnlabeledValueArg<std::string> pathsArg("path","Path",true,"","Path",cmd);
-				
+
 				TCLAP::ValueArg<std::string> jsonOutArg("o", "out", "File for JSON output (leave blank for stdout)", false,jsonOut.string(), "filename", cmd );
 				TCLAP::ValueArg<std::string> hostArg("","host","URL to host",false,DefaultCacheURL.string(),"url",cmd);
+
+				TCLAP::ValueArg<int> startAtArg("","start-at","",false,startAt,"frame number",cmd);
 				TCLAP::ValueArg<int> stopAtArg("","stop-at","",false,stopAt,"frame number",cmd);
-				TCLAP::ValueArg<int> strideArg("","stride","",false,stride,"frame number",cmd);
+				TCLAP::ValueArg<int> strideArg("","stride","Number of frames for stride",false,stride,"num of frames",cmd);
 
 				// Parse the argv array.
 				cmd.parse( argc, argv );
 
 				// Args back to
 				cacheURL = hostArg.getValue();
+
+				startAt = startAtArg.getValue();
+				startAtSet = startAtArg.isSet();
 
 				stopAt = stopAtArg.getValue();
 				stopAtSet = stopAtArg.isSet();
@@ -77,7 +82,9 @@ public:
 
 
 		int stopAt = -1;
-		bool stopAtSet;
+		int startAt = -1;
+
+		bool startAtSet, stopAtSet;
 
 		int stride = 5000;
 
@@ -110,15 +117,19 @@ int main( int argc, char ** argv )
 	// TODO.  Check for failure
 	LOG(INFO) << "File has " << movie.numFrames() << " frames";
 
-	const int stopAt = (config.stopAt ? std::min( movie.numFrames(), config.stopAt ) : movie.numFrames() );
+	std::shared_ptr< FrameProcessor > processor;
+	//processor = new FrameStatistics stats(movie);
+	processor.reset( new ApproxDerivative(movie) );
 
-	FrameStatistics stats(movie);
 	json jsonStats;
 
-	for( auto i = 0; i < stopAt; i += config.stride ) {
+	const int startAt = (config.startAtSet ? std::max( 0, config.startAt ) : 0 );
+	const int stopAt = (config.stopAtSet ? std::min( movie.numFrames(), config.stopAt ) : movie.numFrames() );
+
+	for( auto i = startAt; i < stopAt; i += config.stride ) {
 		auto frame = (i==0 ? 1 : i);
 		LOG(INFO) << "Processing frame " << frame;
-		json j( stats(frame) );
+		json j( (*processor)(frame) );
 		if( !j.empty() ) jsonStats.push_back( j );
 	}
 
