@@ -21,13 +21,18 @@ set( TOOLS_LIBRARIES
 #             ${COMMON_LIBRARIES} )
 
 
-add_executable(motrack motion_track.cpp )
-target_link_libraries( motrack
-${TOOLS_LIBRARIES}
-)
+# add_executable(motrack motion_track.cpp )
+# target_link_libraries( motrack
+# ${TOOLS_LIBRARIES}
+# )
 
 
 add_executable(frame_stats frame_stats.cpp )
 target_link_libraries( frame_stats
   ${TOOLS_LIBRARIES}
  )
+
+ add_executable(annotate annotate.cpp )
+ target_link_libraries( annotate
+   ${TOOLS_LIBRARIES}
+  )
