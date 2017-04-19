@@ -51,8 +51,8 @@ namespace CamHDMotionTracking {
 
           const T cs = ceres::cos( theta ), sn = ceres::sin( theta );
 
-          const T estDx = s * ( cs * x + sn * y ) + tx;
-          const T estDy = s * ( -cs * x + sn * y) + ty;
+          const T estDx = s * (  cs * x + sn * y ) + tx;
+          const T estDy = s * ( -sn * x + cs * y ) + ty;
 
 
           residual[0] += estDx - dx;
@@ -113,8 +113,6 @@ namespace CamHDMotionTracking {
       cv::cvtColor( f1, f1Grey, CV_RGB2GRAY );
       cv::cvtColor( f2, f2Grey, CV_RGB2GRAY );
 
-
-      //_flowAlgorithm->tau = t2-t1;
       cv::Mat flow( f1Grey.size(), CV_32FC2 );
       _flowAlgorithm->calc( f1Grey, f2Grey, flow );
 
@@ -139,12 +137,12 @@ namespace CamHDMotionTracking {
 
       Solver::Options options;
       options.linear_solver_type = ceres::DENSE_QR;
-      options.minimizer_progress_to_stdout = true;
+      //options.minimizer_progress_to_stdout = true;
       Solver::Summary summary;
       Solve(options, &problem, &summary);
 
-      std::cout << summary.BriefReport() << "\n";
-      std::cout << "x : " << similarity << "\n";
+      // std::cout << summary.BriefReport() << "\n";
+      // std::cout << "x : " << similarity << "\n";
 
       const double unscale = 1.0 / (flowScale * imgScale );
       double scaledSim[6] = { similarity[0] * unscale,
