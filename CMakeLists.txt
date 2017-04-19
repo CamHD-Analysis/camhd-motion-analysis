@@ -36,7 +36,7 @@ set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 set( CAMHD_MOTRACK_INCLUDE_DIRS
 	/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
 	${CONAN_INCLUDE_DIR}
-  ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_SOURCE_DIR}/lib
 	${EIGEN3_INCLUDE_DIR}
   ${OpenCV_INCLUDE_DIRS}
 	${CURLPP_INCLUDE_DIRS}
@@ -48,7 +48,7 @@ set( COMMON_LIBRARIES
       ${CONAN_LIBS}
       ${OpenCV_LIBRARIES}
       ${Boost_LIBRARIES}
-		curl )
+			curl )
 
 add_subdirectory("lib/")
 add_subdirectory("tools/")

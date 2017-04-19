@@ -23,11 +23,10 @@ const fs::path host( "https://camhd-app-dev.appspot.com");
 const fs::path url( "/v1/org/oceanobservatories/rawdata/files/RS03ASHS/PN03B/06-CAMHDA301/2016/09/01/CAMHDA301-20160901T000000Z.mov" );
 
 
-
 int main( int argc, char ** argv )
 {
 	auto worker = g3::LogWorker::createLogWorker();
-  auto handle= worker->addDefaultLogger(argv[0],".");
+  auto handle = worker->addDefaultLogger(argv[0],".");
   g3::initializeLogging(worker.get());
 
   // RAAI initializer for curlpp

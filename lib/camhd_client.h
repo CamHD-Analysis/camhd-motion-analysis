@@ -19,7 +19,6 @@ public:
   CamHDClient( ) = delete;
   CamHDClient( const CamHDClient & ) = delete;
 
-
   static CamHDMovie getMovie( const fs::path &path );
   static cv::Mat getFrame( const CamHDMovie &movie, int frame );
 

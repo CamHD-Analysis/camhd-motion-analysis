@@ -1,5 +1,7 @@
-# Set source files
-file(GLOB camhd_motrack_SOURCE_FILES *.cpp )
+set( libcamhd_SRCS
+      camhd_client.cpp
+      camhd_movie.cpp
+      http_request.cpp )
 
 include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}
@@ -9,8 +11,10 @@ include_directories(
 set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin )
 
 # build shared library.
-add_library(camhd_motrack SHARED ${camhd_motrack_SOURCE_FILES} )
+add_library( camhd SHARED ${libcamhd_SRCS} )
 
-target_link_libraries( camhd_motrack
-  ${COMMON_LIBRARIES}
-)
+set( CAMHD_LIBS camhd CACHE INTERNAL "" )
+
+# target_link_libraries( camhd
+#   ${COMMON_LIBRARIES}
+# )

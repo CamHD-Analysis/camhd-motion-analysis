@@ -7,7 +7,7 @@ include_directories(
 link_directories( ${CONAN_LIBRARY_DIR} )
 
 set( TOOLS_LIBRARIES
-  camhd_motrack
+  ${CAMHD_LIBS} 
   ${COMMON_LIBRARIES}
   )
 
