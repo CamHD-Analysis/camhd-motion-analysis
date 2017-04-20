@@ -39,17 +39,16 @@ namespace CamHDMotionTracking {
       residual[1] = T(0.0);
 
       //   Just do it manually for now
-      const int buffer = 5;
-      for( auto j = buffer; j < (_delta.rows-buffer); ++j ) {
-      for( auto i = buffer; i < (_delta.cols-buffer); ++i ) {
+      const int gutter = 5;
+      for( auto r = gutter; r < (_delta.rows-gutter); ++r ) {
+      for( auto c = gutter; c < (_delta.cols-gutter); ++c ) {
 
-          auto naught = _delta.at<Vec2f>( j, i );
+          auto naught = _delta.at<Vec2f>( r, c );
           const T dx = T(naught[0]),
                   dy = T(naught[1]);
 
-          // Work in Cartesian (not image) coordinates
-          const T x = T(i) - cx,
-                  y = T(j) - cy;
+          const T x = T(c) + cx,
+                  y = T(r) + cy;
 
           const T cs = ceres::cos( theta ), sn = ceres::sin( theta );
 
@@ -154,7 +153,7 @@ namespace CamHDMotionTracking {
 
       // Match estimated flow to similarity
       double similarity[4] = {1.0, 0.0, meanFlow[0], meanFlow[1] };
-      double center[2] = { 0.5*scaledFlow.cols, 0.5*scaledFlow.rows };    // s, theta, tx, ty, cx, cy
+      double center[2] = { -0.5*scaledFlow.cols, -0.5*scaledFlow.rows };    // s, theta, tx, ty, cx, cy
 
       Problem problem;
       CostFunction* cost_function = new AutoDiffCostFunction<SimilarityFunctor, 2, 4, 2>(new SimilarityFunctor(scaledFlow));
@@ -165,7 +164,7 @@ namespace CamHDMotionTracking {
       problem.SetParameterBlockConstant(center);
 
       Solver::Options options;
-      options.minimizer_type = LINE_SEARCH;
+      //options.minimizer_type = LINE_SEARCH;
       options.linear_solver_type = ceres::DENSE_QR;
       options.max_num_iterations = 1000;
       options.minimizer_progress_to_stdout = true;
@@ -179,10 +178,15 @@ namespace CamHDMotionTracking {
       stats["imgScale"] = imgScale;
       stats["flowScale"] = flowScale;
 
-      const double unscale = 1.0 / (flowScale * imgScale );
+      const double totalScale = flowScale * imgScale;
 
       // Calculate unscaled translation
 
+      similarity[2] /= totalScale;
+      similarity[3] /= totalScale;
+
+      center[0] /= totalScale;
+      center[1] /= totalScale;
 
       // double similarity[6] = { similarity[0],
       //   similarity[1],
@@ -192,14 +196,14 @@ namespace CamHDMotionTracking {
       //   center[1]};
 //      double rawSim[6] = { similarity[0], similarity[1], similarity[2], similarity[3], center[0],center[1] };
 
-       double centerScaled[2] = {center[0] * unscale, center[1] * unscale};
+       //double centerScaled[2] = {center[0] * unscale, center[1] * unscale};
 
         stats["similarity"] = similarity;
-        stats["center"] = centerScaled;
+        stats["center"] = center;
         stats["valid"] = true;
 
 
-        visualizeWarp( full1, full2, similarity, centerScaled );
+        visualizeWarp( full1, full2, similarity, center );
 
         return stats;
       }
@@ -239,7 +243,7 @@ namespace CamHDMotionTracking {
         cv::Matx33d sim( s * cs, s * sn, tx, s * -sn, s * cs, ty, 0, 0, 1 );
         cv::Matx33d cam( 1, 0, cx, 0, 1, cy, 0, 0, 1 );
 
-        cv::Matx33d warp = cam * sim * cam.inv();
+        cv::Matx33d warp = cam.inv() * sim * cam;
 
         LOG(INFO) << "cam:" << cam;
         LOG(INFO) << "cam inv:" << cam.inv();
