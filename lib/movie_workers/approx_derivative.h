@@ -25,41 +25,48 @@ namespace CamHDMotionTracking {
     {;}
 
     template <typename T>
-    bool operator()(const T* const val, const T* const center, T* residual ) const {
+    bool operator()(const T* const scale, const T* const rot, const T* const trans, const T* const center, T* residual ) const {
       // val[] = {s, theta, tx, ty, cx, cy}
 
-      const T &s( val[0] ),
-              &theta( val[1] ),
-              &tx( val[2] ),
-              &ty( val[3] ),
+      const T &s( scale[0] ),
+              &theta( rot[0] ),
+              &tx( trans[0] ),
+              &ty( trans[1] ),
               &cx( center[0] ),
               &cy( center[1] );
+      const T cs = ceres::cos( theta ), sn = ceres::sin( theta );
 
       residual[0] = T(0.0);
       residual[1] = T(0.0);
 
+      LOG(INFO) << s << "; " << theta << "; " << tx << "; " << ty;
+
       //   Just do it manually for now
       const int gutter = 5;
       for( auto r = gutter; r < (_delta.rows-gutter); ++r ) {
-      for( auto c = gutter; c < (_delta.cols-gutter); ++c ) {
+        for( auto c = gutter; c < (_delta.cols-gutter); ++c ) {
+
+          const T x = T(c) + cx,
+                  y = T(r) + cy;
 
           auto naught = _delta.at<Vec2f>( r, c );
           const T dx = T(naught[0]),
                   dy = T(naught[1]);
 
-          const T x = T(c) + cx,
-                  y = T(r) + cy;
+          // const T xmeas = x + dx;
+          // const T ymeas = y + dy;
 
-          const T cs = ceres::cos( theta ), sn = ceres::sin( theta );
 
-          const T xpred = s * (  cs * x + sn * y ) + tx;
-          const T ypred = s * ( -sn * x + cs * y ) + ty;
+          const T dxpred = s * (  cs * x + sn * y ) + tx - x;
+          const T dypred = s * ( -sn * x + cs * y ) + ty - y;
 
-          const T xmeas = x + dx;
-          const T ymeas = y + dy;
+          const T errx = dxpred - dx,
+                  erry = dypred - dy;
 
-          residual[0] += (xpred - xmeas)*(xpred - xmeas);
-          residual[1] += (ypred - ymeas)*(ypred - ymeas);
+          //LOG(INFO) << errx << " :: " << erry;
+
+          residual[0] += ceres::sqrt(errx*errx);
+          residual[1] += ceres::sqrt(erry*erry);
         }
       }
 
@@ -125,7 +132,7 @@ namespace CamHDMotionTracking {
       cv::cvtColor( f1, f1Grey, CV_RGB2GRAY );
       cv::cvtColor( f2, f2Grey, CV_RGB2GRAY );
 
-      // Do some heuristics
+      // Do some heuristics (TODO:  This could be moved earlier)
       Scalar mean[2];
       mean[0] = cv::mean( f1 );
       mean[1] = cv::mean( f2 );
@@ -141,33 +148,55 @@ namespace CamHDMotionTracking {
       // Scale flow by dt
       //flow /= (t2-t1);
 
-      //visualizeFlow( flow, f1Grey, f2Grey );
+      visualizeFlow( flow, f1Grey, f2Grey );
 
-      auto meanFlow = cv::mean( flow );
 
       // Use optical flow to estimate transform
       // Downsample flow using linear interoplation
       cv::Mat scaledFlow;
-      const float flowScale = 0.25;
+      const float flowScale = 1.0;
       cv::resize( flow, scaledFlow, cv::Size(), flowScale, flowScale, INTER_LINEAR );
+
+      auto meanFlow = cv::mean( scaledFlow );
+
 
       // Match estimated flow to similarity
       double similarity[4] = {1.0, 0.0, meanFlow[0], meanFlow[1] };
       double center[2] = { -0.5*scaledFlow.cols, -0.5*scaledFlow.rows };    // s, theta, tx, ty, cx, cy
 
       Problem problem;
-      CostFunction* cost_function = new AutoDiffCostFunction<SimilarityFunctor, 2, 4, 2>(new SimilarityFunctor(scaledFlow));
+      CostFunction* cost_function = new AutoDiffCostFunction<SimilarityFunctor, 2, 1, 1, 2, 2>(new SimilarityFunctor(scaledFlow));
 
-      const double HuberThreshold = 2.0;
-      problem.AddResidualBlock(cost_function, new ceres::HuberLoss(HuberThreshold), similarity, center);
+      const double HuberThreshold = 200;
+      problem.AddResidualBlock(cost_function, new ceres::HuberLoss(HuberThreshold), &(similarity[0]), &(similarity[1]), &(similarity[2]), center);
 
       problem.SetParameterBlockConstant(center);
 
+      problem.SetParameterBlockConstant(&(similarity[1]));  // Fix theta
+      problem.SetParameterBlockConstant(&(similarity[2]));  // Fix translation
+
+
+      // problem.SetParameterLowerBound( similarity, 0, 0.5 );
+      // problem.SetParameterUpperBound( similarity, 0, 1.5 );
+      //
+      // problem.SetParameterLowerBound( similarity, 1, -M_PI );
+      // problem.SetParameterUpperBound( similarity, 1, M_PI );
+      //
+      // problem.SetParameterLowerBound( similarity, 2, -0.25 );//*scaledFlow.cols );
+      // problem.SetParameterUpperBound( similarity, 2,  0.25 );//*scaledFlow.cols );
+      //
+      // problem.SetParameterLowerBound( similarity, 3, -0.25 );//*scaledFlow.rows );
+      // problem.SetParameterUpperBound( similarity, 3,  0.25 );//*scaledFlow.rows );
+
+
+
       Solver::Options options;
+      options.preconditioner_type = ceres::IDENTITY;
       //options.minimizer_type = LINE_SEARCH;
-      options.linear_solver_type = ceres::DENSE_QR;
+      //options.linear_solver_type = ceres::DENSE_QR;
       options.max_num_iterations = 1000;
       options.minimizer_progress_to_stdout = true;
+      options.check_gradients = true;
       Solver::Summary summary;
       Solve(options, &problem, &summary);
 
@@ -222,11 +251,39 @@ namespace CamHDMotionTracking {
 
         LOG(INFO) << "Max x : " << cv::norm(channels[0], NORM_INF) << " : Max y: " << cv::norm(channels[1], NORM_INF);
 
+        cv::Mat xScaled( channels[0]/m );
+        cv::Mat xnScaled( -xScaled );
+
+        cv::Mat yScaled( channels[1]/m );
+        cv::Mat ynScaled( -yScaled );
+
+        cv::Mat nil( cv::Mat::zeros( xScaled.size(), xScaled.type() ));
+
+        vector<cv::Mat> xchan;
+        xchan.push_back( xnScaled ); //  B
+        xchan.push_back( nil );      // G
+        xchan.push_back( xScaled );  // R
+
+
+        cv::Mat flowComposite( cv::Size(xScaled.size().width + yScaled.size().width, xScaled.size().height), CV_32FC3 );
+        cv::Mat xmerged( flowComposite, cv::Rect(0,0, xScaled.size().width, xScaled.size().height ));
+
+        cv::merge( xchan, xmerged );
+
+
+
+
+        vector<cv::Mat> ychan;
+        ychan.push_back( ynScaled ); // B
+        ychan.push_back( nil );
+        ychan.push_back( yScaled );  // R
+
+        cv::Mat ymerged( flowComposite, cv::Rect(xScaled.size().width,0, yScaled.size().width, yScaled.size().height ));
+        cv::merge( ychan, ymerged );
+
         imshow( "image 1", f1 );
         imshow( "image 2", f2 );
-        imshow( "X flow", channels[0]/m  );
-        imshow( "Y flow", channels[1]/m );
-        waitKey(0);
+        imshow( "flow", flowComposite );
 
       }
 
