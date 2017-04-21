@@ -16,6 +16,7 @@
 #include "movie_workers/frame_mean.h"
 #include "movie_workers/frame_statistics.h"
 #include "movie_workers/approx_derivative.h"
+#include "movie_workers/optical_flow.h"
 
 #include "json.hpp"
 using json = nlohmann::json;
@@ -138,7 +139,7 @@ int main( int argc, char ** argv )
 
 	std::vector< std::shared_ptr< FrameProcessor > > processors;
 	//processor = new FrameStatistics stats(movie);
-	processors.emplace_back( new ApproxDerivative(movie) );
+	processors.emplace_back( new OpticalFlow(movie) );
 	processors.emplace_back( new FrameStatistics(movie) );
 
 	json jsonStats;
