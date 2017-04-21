@@ -128,21 +128,30 @@ int main( int argc, char ** argv )
 
 		auto coeffs( sim["similarity"] );
 
+		const float s( coeffs[0].get<float>() ),
+								theta( coeffs[1].get<float>() );
+		const cv::Vec2f tx( coeffs[2].get<float>(), coeffs[3].get<float>() );
+
+		const cv::Point center(frame.size().width / 2.0, frame.size().height / 2.0 );
+
 		LOG(INFO) << coeffs;
+
+
 
 		// Draw translation
 		const float lineScale = 1.0;
-		cv::line( frame, cv::Point(frame.size().width / 2.0, frame.size().height / 2.0 ),
-											cv::Point(frame.size().width / 2.0 + coeffs[2].get<float>()*lineScale, frame.size().height / 2.0 + coeffs[3].get<float>()*lineScale),
+		cv::line( frame, center,
+										cv::Point(center.x + lineScale*tx[0], center.y + lineScale*tx[1] ),
 										cv::Scalar(255,0,0), 5 );
+
+		LOG(INFO) << "Scale: " << s;
 
 		// Draw scaling
 		const float zoomScale = 1000;
-		const float s( coeffs[0].get<float>());
 		const float zoomRadius = std::abs(s-1.0) * zoomScale;
 		cv::Scalar zoomColor( ( s > 1.0 ) ? cv::Scalar(0,255,0) : cv::Scalar(0,0,255) );
 
-		cv::circle( frame, cv::Point(frame.size().width / 2.0, frame.size().height / 2.0 ), zoomRadius, zoomColor, 2 );
+		cv::circle( frame, center, zoomRadius, zoomColor, 2 );
 
 		imshow( "frame", frame );
 		waitKey(30);

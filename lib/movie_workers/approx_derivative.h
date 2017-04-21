@@ -20,7 +20,7 @@ namespace CamHDMotionTracking {
   struct SimilarityFunctor {
     SimilarityFunctor( const cv::Mat &delta, const cv::Mat &mask = cv::Mat() )
     : _delta( delta ),
-      _mask( mask ),
+    _mask( mask ),
     _cx( delta.cols / 2.0 ),
     _cy( delta.rows / 2.0 )
     {;}
@@ -40,7 +40,7 @@ namespace CamHDMotionTracking {
       residual[0] = T(0.0);
       residual[1] = T(0.0);
 
-      //LOG(INFO) << s << "; " << theta << "; " << tx << "; " << ty;
+      LOG(INFO) << s << "; " << theta << "; " << tx << "; " << ty;
 
       //   Just do it manually for now
       const int gutter = 5;
@@ -118,7 +118,7 @@ namespace CamHDMotionTracking {
       }
 
       cv::Mat full1( getFrame( t1, 1.0 ) ),
-                full2( getFrame( t2, 1.0 ) );
+      full2( getFrame( t2, 1.0 ) );
 
       const float imgScale = 0.25;
 
@@ -177,7 +177,7 @@ namespace CamHDMotionTracking {
       CostFunction* cost_function = new AutoDiffCostFunction<SimilarityFunctor, 2, 1, 1, 2, 2>(new SimilarityFunctor(scaledFlow, f1Mask ));
 
       const double HuberThreshold = 200;
-      problem.AddResidualBlock(cost_function, new ceres::HuberLoss(HuberThreshold), &(similarity[0]), &(similarity[1]), &(similarity[2]), center);
+      problem.AddResidualBlock(cost_function, NULL, &(similarity[0]), &(similarity[1]), &(similarity[2]), center);
 
       problem.SetParameterBlockConstant(center);
 
@@ -192,7 +192,7 @@ namespace CamHDMotionTracking {
       problem.SetParameterUpperBound( &(similarity[1]), 0,  0.1 );
 
       //
-      problem.SetParameterLowerBound( &(similarity[2]), 0, -0.25 *scaledFlow.cols );
+      problem.SetParameterLowerBound( &(similarity[2]), 0, -0.25*scaledFlow.cols );
       problem.SetParameterUpperBound( &(similarity[2]), 0,  0.25*scaledFlow.cols );
 
       problem.SetParameterLowerBound( &(similarity[2]), 1, -0.25 *scaledFlow.rows );
@@ -201,7 +201,7 @@ namespace CamHDMotionTracking {
 
 
       Solver::Options options;
-      options.preconditioner_type = ceres::IDENTITY;
+      //options.preconditioner_type = ceres::IDENTITY;
       //options.minimizer_type = LINE_SEARCH;
       //options.linear_solver_type = ceres::DENSE_QR;
       options.max_num_iterations = 1000;
@@ -238,158 +238,158 @@ namespace CamHDMotionTracking {
       //   similarity[3] ,
       //   center[0],
       //   center[1]};
-//      double rawSim[6] = { similarity[0], similarity[1], similarity[2], similarity[3], center[0],center[1] };
+      //      double rawSim[6] = { similarity[0], similarity[1], similarity[2], similarity[3], center[0],center[1] };
 
-       //double centerScaled[2] = {center[0] * unscale, center[1] * unscale};
+      //double centerScaled[2] = {center[0] * unscale, center[1] * unscale};
 
-        stats["similarity"] = similarity;
-        stats["center"] = center;
-        stats["valid"] = true;
-
-
-        visualizeWarp( full1, full2, similarity, center );
-
-        return stats;
-      }
+      stats["similarity"] = similarity;
+      stats["center"] = center;
+      stats["valid"] = true;
 
 
-      Ptr< DenseOpticalFlow > _flowAlgorithm;
+      visualizeWarp( full1, full2, similarity, center );
+
+      return stats;
+    }
+
+
+    Ptr< DenseOpticalFlow > _flowAlgorithm;
 
 
 
-      void visualizeFlow( const cv::Mat &flow, const cv::Mat &f1, const cv::Mat &f2, const cv::Mat &mask = cv::Mat() )
-      {
-        std::vector< cv::Mat > channels(2);
-        cv::split( flow, channels );
+    void visualizeFlow( const cv::Mat &flow, const cv::Mat &f1, const cv::Mat &f2, const cv::Mat &mask = cv::Mat() )
+    {
+      std::vector< cv::Mat > channels(2);
+      cv::split( flow, channels );
 
-        float m = std::max( cv::norm(channels[0], NORM_INF), cv::norm(channels[1], NORM_INF) );
+      float m = std::max( cv::norm(channels[0], NORM_INF), cv::norm(channels[1], NORM_INF) );
 
-        LOG(INFO) << "Max x : " << cv::norm(channels[0], NORM_INF) << " : Max y: " << cv::norm(channels[1], NORM_INF);
+      LOG(INFO) << "Max x : " << cv::norm(channels[0], NORM_INF) << " : Max y: " << cv::norm(channels[1], NORM_INF);
 
-        cv::Mat xScaled( channels[0]/m );
-        cv::Mat xnScaled( -xScaled );
+      cv::Mat xScaled( channels[0]/m );
+      cv::Mat xnScaled( -xScaled );
 
-        cv::Mat yScaled( channels[1]/m );
-        cv::Mat ynScaled( -yScaled );
+      cv::Mat yScaled( channels[1]/m );
+      cv::Mat ynScaled( -yScaled );
 
-        cv::Mat nil( cv::Mat::zeros( xScaled.size(), xScaled.type() ));
+      cv::Mat nil( cv::Mat::zeros( xScaled.size(), xScaled.type() ));
 
-        vector<cv::Mat> xchan;
-        xchan.push_back( xnScaled ); //  B
-        xchan.push_back( nil );      // G
-        xchan.push_back( xScaled );  // R
+      vector<cv::Mat> xchan;
+      xchan.push_back( xnScaled ); //  B
+      xchan.push_back( nil );      // G
+      xchan.push_back( xScaled );  // R
 
-        vector<cv::Mat> ychan;
-        ychan.push_back( ynScaled ); // B
-        ychan.push_back( nil );
-        ychan.push_back( yScaled );  // R
+      vector<cv::Mat> ychan;
+      ychan.push_back( ynScaled ); // B
+      ychan.push_back( nil );
+      ychan.push_back( yScaled );  // R
 
-        cv::Mat flowComposite( cv::Mat::zeros(cv::Size(xScaled.size().width + yScaled.size().width, xScaled.size().height), CV_32FC3 ) );
-        cv::Mat xroi( flowComposite, cv::Rect(0,0, xScaled.size().width, xScaled.size().height ));
-        cv::Mat yroi( flowComposite, cv::Rect(xScaled.size().width,0, yScaled.size().width, yScaled.size().height ));
+      cv::Mat flowComposite( cv::Mat::zeros(cv::Size(xScaled.size().width + yScaled.size().width, xScaled.size().height), CV_32FC3 ) );
+      cv::Mat xroi( flowComposite, cv::Rect(0,0, xScaled.size().width, xScaled.size().height ));
+      cv::Mat yroi( flowComposite, cv::Rect(xScaled.size().width,0, yScaled.size().width, yScaled.size().height ));
 
-        if( mask.empty() ) {
+      if( mask.empty() ) {
         cv::merge( xchan, xroi );
 
         cv::merge( ychan, yroi );
       } else {
         cv::Mat xflow, yflow;
 
-cv::merge(xchan,xflow);
-cv::merge(ychan,yflow);
+        cv::merge(xchan,xflow);
+        cv::merge(ychan,yflow);
 
-xflow.copyTo( xroi, mask );
-yflow.copyTo( yroi, mask );
-
-      }
-
-        // imshow( "image 1", f1 );
-        // imshow( "image 2", f2 );
-
-        //imshow( "flow", flowComposite );
+        xflow.copyTo( xroi, mask );
+        yflow.copyTo( yroi, mask );
 
       }
 
-      void visualizeWarp( const cv::Mat &f1, const cv::Mat &f2, double *scaledSim, double *center )
-      {
-        const double s( scaledSim[0] ),
-                    theta( scaledSim[1] ),
-                    tx( scaledSim[2] ),
-                    ty( scaledSim[3] ),
-                    cx( center[0] ),
-                    cy( center[1] );
-        const double cs = std::cos( theta ), sn = std::sin(theta );
+      // imshow( "image 1", f1 );
+      // imshow( "image 2", f2 );
 
-        cv::Matx33d sim( s * cs, s * sn, tx, s * -sn, s * cs, ty, 0, 0, 1 );
-        cv::Matx33d cam( 1, 0, cx, 0, 1, cy, 0, 0, 1 );
+      imshow( "flow", flowComposite );
 
-        cv::Matx33d warp = cam.inv() * sim * cam;
+    }
 
-        LOG(INFO) << "cam:" << cam;
-        LOG(INFO) << "cam inv:" << cam.inv();
-        LOG(INFO) << "sim:" << sim;
-        LOG(INFO) << "warp:" << warp;
+    void visualizeWarp( const cv::Mat &f1, const cv::Mat &f2, double *scaledSim, double *center )
+    {
+      const double s( scaledSim[0] ),
+      theta( scaledSim[1] ),
+      tx( scaledSim[2] ),
+      ty( scaledSim[3] ),
+      cx( center[0] ),
+      cy( center[1] );
+      const double cs = std::cos( theta ), sn = std::sin(theta );
 
-        cv::Mat f1warp;
-        cv::warpPerspective( f1, f1warp, warp, f1.size() );
+      cv::Matx33d sim( s * cs, s * sn, tx, s * -sn, s * cs, ty, 0, 0, 1 );
+      cv::Matx33d cam( 1, 0, cx, 0, 1, cy, 0, 0, 1 );
 
-        // Build a composite
-        const float scale = 0.5;
-        const int width = f1.size().width * scale, height = f1.size().height * scale;
-        cv::Mat composite( cv::Size(width*3, height), CV_8UC3 );
-        cv::Mat roiOne( composite, cv::Rect(0,0,width,height) );
-        cv::resize( f1, roiOne, roiOne.size() );
+      cv::Matx33d warp = cam.inv() * sim * cam;
 
-        cv::Mat roiOneWarp( composite, cv::Rect(width,0,width,height));
-        cv::resize( f1warp, roiOneWarp, roiOneWarp.size() );
+      LOG(INFO) << "cam:" << cam;
+      LOG(INFO) << "cam inv:" << cam.inv();
+      LOG(INFO) << "sim:" << sim;
+      LOG(INFO) << "warp:" << warp;
 
-        cv::Mat roiTwo( composite, cv::Rect( 2*width,0, width,height ));
-        cv::resize( f2, roiTwo, roiTwo.size() );
+      cv::Mat f1warp;
+      cv::warpPerspective( f1, f1warp, warp, f1.size() );
 
-        // imshow( "composite", composite);
-        // waitKey(0);
-      }
+      // Build a composite
+      const float scale = 0.5;
+      const int width = f1.size().width * scale, height = f1.size().height * scale;
+      cv::Mat composite( cv::Size(width*3, height), CV_8UC3 );
+      cv::Mat roiOne( composite, cv::Rect(0,0,width,height) );
+      cv::resize( f1, roiOne, roiOne.size() );
 
+      cv::Mat roiOneWarp( composite, cv::Rect(width,0,width,height));
+      cv::resize( f1warp, roiOneWarp, roiOneWarp.size() );
 
+      cv::Mat roiTwo( composite, cv::Rect( 2*width,0, width,height ));
+      cv::resize( f2, roiTwo, roiTwo.size() );
 
-      cv::Mat buildMask( const cv::Mat &grey )
-      {
-        cv::Mat sobelX, sobelY, mag, angle;
-
-        cv::Sobel( grey, sobelX, CV_32F, 1, 0 );
-        cv::Sobel( grey, sobelY, CV_32F, 0, 1 );
-        cv::cartToPolar( sobelX, sobelY, mag, angle );
-
-        const float magNorm = std::max( cv::norm( sobelX, NORM_INF ), cv::norm( sobelY, NORM_INF ));
-
-        // imshow( "sobelX", sobelX/magNorm );
-        // imshow( "sobelY", sobelY/magNorm );
-
-        // What statistical model for the magnitude
+      imshow( "composite", composite);
+      waitKey(0);
+    }
 
 
 
-        cv::Mat mask;
-        const double magMax( cv::norm( mag, NORM_INF ) );
-        const double threshold = 0.1 * magMax;
+    cv::Mat buildMask( const cv::Mat &grey )
+    {
+      cv::Mat sobelX, sobelY, mag, angle;
 
-        cv::compare( mag, threshold, mask, CMP_GT );
+      cv::Sobel( grey, sobelX, CV_32F, 1, 0 );
+      cv::Sobel( grey, sobelY, CV_32F, 0, 1 );
+      cv::cartToPolar( sobelX, sobelY, mag, angle );
 
-        // imshow("mag", mag/magMax );
-        // imshow("mask", mask);
+      const float magNorm = std::max( cv::norm( sobelX, NORM_INF ), cv::norm( sobelY, NORM_INF ));
 
-        cv::dilate( mask, mask, Mat(), Point(-1,-1), 5 );
+      // imshow( "sobelX", sobelX/magNorm );
+      // imshow( "sobelY", sobelY/magNorm );
 
-        // imshow("dilated", mask);
-
-        // waitKey(0);
-        //
-        //
-        return mask;
-      }
+      // What statistical model for the magnitude
 
 
 
-    };
+      cv::Mat mask;
+      const double magMax( cv::norm( mag, NORM_INF ) );
+      const double threshold = 0.1 * magMax;
 
-  }
+      cv::compare( mag, threshold, mask, CMP_GT );
+
+      // imshow("mag", mag/magMax );
+      // imshow("mask", mask);
+
+      cv::dilate( mask, mask, Mat(), Point(-1,-1), 5 );
+
+      // imshow("dilated", mask);
+
+      // waitKey(0);
+      //
+      //
+      return mask;
+    }
+
+
+
+  };
+
+}
