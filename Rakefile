@@ -36,47 +36,11 @@ buildTypes.each { |build_type|
   end
 }
 
-## Import the Docker taskjs
-DockerTasks.new( builds: buildTypes.map(&:downcase)  )
 
-task :distclean do
-  sh "rm -rf build-*"
+task :process do
+  sh "build-Release/bin/frame_stats --start-at 5000 --stop-at 6000 -o fooCAMHDA301-20160101T000000Z.json --stride 10 -- /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z.mov
+"
 end
-
-namespace :conan do
-  task :export do
-    sh "rm -rf build-*"
-    sh "conan export amarburg/testing"
-  end
-end
-
-namespace :dependencies do
-
-  task :trusty do
-    sh "sudo apt-get install -y cmake libopencv-dev libtclap-dev libboost-all-dev"
-    sh "pip install conan"
-  end
-
-  task :osx do
-    sh "brew update"
-    sh "brew tap homebrew/science"
-    sh "brew install homebrew/science/opencv tclap"
-    sh "pip install conan"
-  end
-
-  namespace :travis do
-
-    task :linux => "dependencies:trusty"
-
-    task :osx => [:pip_uninstall_numpy, "dependencies:osx"]
-
-    task :pip_uninstall_numpy do
-      sh "pip uninstall -y numpy"
-    end
-
-  end
-end
-
 
 
 

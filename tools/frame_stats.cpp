@@ -27,6 +27,19 @@ using namespace CamHDMotionTracking;
 
 const fs::path DefaultCacheURL( "https://camhd-app-dev.appspot.com/v1/org/oceanobservatories/rawdata/files");
 
+
+bool doStop = false;
+
+void catchSignal(int signo) {
+	switch( signo ) {
+		case SIGINT:
+				doStop = true;
+				return;
+	}
+}
+
+
+
 class FrameStatsConfig {
 public:
 	FrameStatsConfig()
@@ -99,6 +112,12 @@ int main( int argc, char ** argv )
   // RAAI initializer for curlpp
 	curlpp::Cleanup cleanup;
 
+
+	if(signal(SIGINT, catchSignal ) == SIG_ERR) {
+			LOG(FATAL) << "An error occurred while setting the signal handler.";
+			exit(-1);
+	}
+
 	FrameStatsConfig config;
 	if( !config.parseArgs( argc, argv ) ) {
 		LOG(WARNING) << "Error while parsing args";
@@ -127,7 +146,7 @@ int main( int argc, char ** argv )
 	const int startAt = (config.startAtSet ? std::max( 0, config.startAt ) : 0 );
 	const int stopAt = (config.stopAtSet ? std::min( movie.numFrames(), config.stopAt ) : movie.numFrames() );
 
-	for( auto i = startAt; i < stopAt; i += config.stride ) {
+	for( auto i = startAt; i < stopAt && !doStop; i += config.stride ) {
 		auto frame = (i==0 ? 1 : i);
 		LOG(INFO) << "Processing frame " << frame;
 		json j;

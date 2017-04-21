@@ -40,7 +40,7 @@ namespace CamHDMotionTracking {
       residual[0] = T(0.0);
       residual[1] = T(0.0);
 
-      LOG(INFO) << s << "; " << theta << "; " << tx << "; " << ty;
+      //LOG(INFO) << s << "; " << theta << "; " << tx << "; " << ty;
 
       //   Just do it manually for now
       const int gutter = 5;
@@ -182,20 +182,21 @@ namespace CamHDMotionTracking {
       problem.SetParameterBlockConstant(center);
 
       problem.SetParameterBlockConstant(&(similarity[1]));  // Fix theta
-      problem.SetParameterBlockConstant(&(similarity[2]));  // Fix translation
+      //problem.SetParameterBlockConstant(&(similarity[2]));  // Fix translation
 
+      problem.SetParameterLowerBound( similarity, 0, 0.8 );
+      problem.SetParameterUpperBound( similarity, 0, 1.2 );
 
-      // problem.SetParameterLowerBound( similarity, 0, 0.5 );
-      // problem.SetParameterUpperBound( similarity, 0, 1.5 );
+      // Expect very little rotation
+      problem.SetParameterLowerBound( &(similarity[1]), 0, -0.1 );
+      problem.SetParameterUpperBound( &(similarity[1]), 0,  0.1 );
+
       //
-      // problem.SetParameterLowerBound( similarity, 1, -M_PI );
-      // problem.SetParameterUpperBound( similarity, 1, M_PI );
-      //
-      // problem.SetParameterLowerBound( similarity, 2, -0.25 );//*scaledFlow.cols );
-      // problem.SetParameterUpperBound( similarity, 2,  0.25 );//*scaledFlow.cols );
-      //
-      // problem.SetParameterLowerBound( similarity, 3, -0.25 );//*scaledFlow.rows );
-      // problem.SetParameterUpperBound( similarity, 3,  0.25 );//*scaledFlow.rows );
+      problem.SetParameterLowerBound( &(similarity[2]), 0, -0.25 *scaledFlow.cols );
+      problem.SetParameterUpperBound( &(similarity[2]), 0,  0.25*scaledFlow.cols );
+
+      problem.SetParameterLowerBound( &(similarity[2]), 1, -0.25 *scaledFlow.rows );
+      problem.SetParameterUpperBound( &(similarity[2]), 1,  0.25 *scaledFlow.rows );
 
 
 
@@ -305,7 +306,7 @@ yflow.copyTo( yroi, mask );
         // imshow( "image 1", f1 );
         // imshow( "image 2", f2 );
 
-        imshow( "flow", flowComposite );
+        //imshow( "flow", flowComposite );
 
       }
 
@@ -345,8 +346,8 @@ yflow.copyTo( yroi, mask );
         cv::Mat roiTwo( composite, cv::Rect( 2*width,0, width,height ));
         cv::resize( f2, roiTwo, roiTwo.size() );
 
-        imshow( "composite", composite);
-        waitKey(0);
+        // imshow( "composite", composite);
+        // waitKey(0);
       }
 
 
