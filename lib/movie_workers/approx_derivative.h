@@ -182,7 +182,7 @@ namespace CamHDMotionTracking {
       problem.SetParameterBlockConstant(center);
 
       problem.SetParameterBlockConstant(&(similarity[1]));  // Fix theta
-      //problem.SetParameterBlockConstant(&(similarity[2]));  // Fix translation
+      problem.SetParameterBlockConstant(&(similarity[2]));  // Fix translation
 
 
       // problem.SetParameterLowerBound( similarity, 0, 0.5 );
