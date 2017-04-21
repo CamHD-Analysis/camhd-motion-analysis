@@ -131,13 +131,13 @@ int main( int argc, char ** argv )
 		LOG(INFO) << coeffs;
 
 		// Draw translation
-		const float lineScale = 10;
+		const float lineScale = 1.0;
 		cv::line( frame, cv::Point(frame.size().width / 2.0, frame.size().height / 2.0 ),
 											cv::Point(frame.size().width / 2.0 + coeffs[2].get<float>()*lineScale, frame.size().height / 2.0 + coeffs[3].get<float>()*lineScale),
 										cv::Scalar(255,0,0), 5 );
 
 		// Draw scaling
-		const float zoomScale = 100;
+		const float zoomScale = 1000;
 		const float s( coeffs[0].get<float>());
 		const float zoomRadius = std::abs(s-1.0) * zoomScale;
 		cv::Scalar zoomColor( ( s > 1.0 ) ? cv::Scalar(0,255,0) : cv::Scalar(0,0,255) );
@@ -145,7 +145,7 @@ int main( int argc, char ** argv )
 		cv::circle( frame, cv::Point(frame.size().width / 2.0, frame.size().height / 2.0 ), zoomRadius, zoomColor, 2 );
 
 		imshow( "frame", frame );
-		waitKey(100);
+		waitKey(30);
 	}
 
 	//
