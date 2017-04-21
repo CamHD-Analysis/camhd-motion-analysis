@@ -18,8 +18,9 @@ namespace CamHDMotionTracking {
   //=====
 
   struct SimilarityFunctor {
-    SimilarityFunctor( const cv::Mat &delta )
+    SimilarityFunctor( const cv::Mat &delta, const cv::Mat &mask = cv::Mat() )
     : _delta( delta ),
+      _mask( mask ),
     _cx( delta.cols / 2.0 ),
     _cy( delta.rows / 2.0 )
     {;}
@@ -45,6 +46,9 @@ namespace CamHDMotionTracking {
       const int gutter = 5;
       for( auto r = gutter; r < (_delta.rows-gutter); ++r ) {
         for( auto c = gutter; c < (_delta.cols-gutter); ++c ) {
+
+
+          if( !_mask.empty() && _mask.at<uchar>(r,c) == 0 ) continue;
 
           const T x = T(c) + cx,
                   y = T(r) + cy;
@@ -73,7 +77,7 @@ namespace CamHDMotionTracking {
       return true;
     }
 
-    cv::Mat _delta;
+    cv::Mat _delta, _mask;
     int _cx, _cy;
   };
 
@@ -142,13 +146,19 @@ namespace CamHDMotionTracking {
         return stats;
       }
 
+      // Build mask
+      cv::Mat f1Mask( buildMask( f1Grey ) );
+      //cv::Mat f2Mask( buildMask( f2Grey ) );
+
+
+      // Optical flow calculation
       cv::Mat flow( f1Grey.size(), CV_32FC2 );
       _flowAlgorithm->calc( f1Grey, f2Grey, flow );
 
       // Scale flow by dt
       //flow /= (t2-t1);
 
-      visualizeFlow( flow, f1Grey, f2Grey );
+      visualizeFlow( flow, f1Grey, f2Grey, f1Mask );
 
 
       // Use optical flow to estimate transform
@@ -159,13 +169,12 @@ namespace CamHDMotionTracking {
 
       auto meanFlow = cv::mean( scaledFlow );
 
-
-      // Match estimated flow to similarity
+      // Initialize similarity
       double similarity[4] = {1.0, 0.0, meanFlow[0], meanFlow[1] };
       double center[2] = { -0.5*scaledFlow.cols, -0.5*scaledFlow.rows };    // s, theta, tx, ty, cx, cy
 
       Problem problem;
-      CostFunction* cost_function = new AutoDiffCostFunction<SimilarityFunctor, 2, 1, 1, 2, 2>(new SimilarityFunctor(scaledFlow));
+      CostFunction* cost_function = new AutoDiffCostFunction<SimilarityFunctor, 2, 1, 1, 2, 2>(new SimilarityFunctor(scaledFlow, f1Mask ));
 
       const double HuberThreshold = 200;
       problem.AddResidualBlock(cost_function, new ceres::HuberLoss(HuberThreshold), &(similarity[0]), &(similarity[1]), &(similarity[2]), center);
@@ -173,7 +182,7 @@ namespace CamHDMotionTracking {
       problem.SetParameterBlockConstant(center);
 
       problem.SetParameterBlockConstant(&(similarity[1]));  // Fix theta
-      problem.SetParameterBlockConstant(&(similarity[2]));  // Fix translation
+      //problem.SetParameterBlockConstant(&(similarity[2]));  // Fix translation
 
 
       // problem.SetParameterLowerBound( similarity, 0, 0.5 );
@@ -196,13 +205,18 @@ namespace CamHDMotionTracking {
       //options.linear_solver_type = ceres::DENSE_QR;
       options.max_num_iterations = 1000;
       options.minimizer_progress_to_stdout = true;
-      options.check_gradients = true;
+      //options.check_gradients = true;
       Solver::Summary summary;
       Solve(options, &problem, &summary);
 
       LOG(INFO) << summary.FullReport();
       LOG(INFO) << "similarity : " << similarity[0] << " " << similarity[1] << " " << similarity[2] << " " << similarity[3];
       LOG(INFO) << "center : " << center[0] << " " << center[1];
+
+      // TODO Tests for validity of solution
+
+
+
 
       stats["imgScale"] = imgScale;
       stats["flowScale"] = flowScale;
@@ -242,7 +256,7 @@ namespace CamHDMotionTracking {
 
 
 
-      void visualizeFlow( const cv::Mat &flow, const cv::Mat &f1, const cv::Mat &f2 )
+      void visualizeFlow( const cv::Mat &flow, const cv::Mat &f1, const cv::Mat &f2, const cv::Mat &mask = cv::Mat() )
       {
         std::vector< cv::Mat > channels(2);
         cv::split( flow, channels );
@@ -264,25 +278,33 @@ namespace CamHDMotionTracking {
         xchan.push_back( nil );      // G
         xchan.push_back( xScaled );  // R
 
-
-        cv::Mat flowComposite( cv::Size(xScaled.size().width + yScaled.size().width, xScaled.size().height), CV_32FC3 );
-        cv::Mat xmerged( flowComposite, cv::Rect(0,0, xScaled.size().width, xScaled.size().height ));
-
-        cv::merge( xchan, xmerged );
-
-
-
-
         vector<cv::Mat> ychan;
         ychan.push_back( ynScaled ); // B
         ychan.push_back( nil );
         ychan.push_back( yScaled );  // R
 
-        cv::Mat ymerged( flowComposite, cv::Rect(xScaled.size().width,0, yScaled.size().width, yScaled.size().height ));
-        cv::merge( ychan, ymerged );
+        cv::Mat flowComposite( cv::Mat::zeros(cv::Size(xScaled.size().width + yScaled.size().width, xScaled.size().height), CV_32FC3 ) );
+        cv::Mat xroi( flowComposite, cv::Rect(0,0, xScaled.size().width, xScaled.size().height ));
+        cv::Mat yroi( flowComposite, cv::Rect(xScaled.size().width,0, yScaled.size().width, yScaled.size().height ));
 
-        imshow( "image 1", f1 );
-        imshow( "image 2", f2 );
+        if( mask.empty() ) {
+        cv::merge( xchan, xroi );
+
+        cv::merge( ychan, yroi );
+      } else {
+        cv::Mat xflow, yflow;
+
+cv::merge(xchan,xflow);
+cv::merge(ychan,yflow);
+
+xflow.copyTo( xroi, mask );
+yflow.copyTo( yroi, mask );
+
+      }
+
+        // imshow( "image 1", f1 );
+        // imshow( "image 2", f2 );
+
         imshow( "flow", flowComposite );
 
       }
@@ -323,10 +345,49 @@ namespace CamHDMotionTracking {
         cv::Mat roiTwo( composite, cv::Rect( 2*width,0, width,height ));
         cv::resize( f2, roiTwo, roiTwo.size() );
 
-
-imshow( "composite", composite);
-waitKey(0);
+        imshow( "composite", composite);
+        waitKey(0);
       }
+
+
+
+      cv::Mat buildMask( const cv::Mat &grey )
+      {
+        cv::Mat sobelX, sobelY, mag, angle;
+
+        cv::Sobel( grey, sobelX, CV_32F, 1, 0 );
+        cv::Sobel( grey, sobelY, CV_32F, 0, 1 );
+        cv::cartToPolar( sobelX, sobelY, mag, angle );
+
+        const float magNorm = std::max( cv::norm( sobelX, NORM_INF ), cv::norm( sobelY, NORM_INF ));
+
+        // imshow( "sobelX", sobelX/magNorm );
+        // imshow( "sobelY", sobelY/magNorm );
+
+        // What statistical model for the magnitude
+
+
+
+        cv::Mat mask;
+        const double magMax( cv::norm( mag, NORM_INF ) );
+        const double threshold = 0.1 * magMax;
+
+        cv::compare( mag, threshold, mask, CMP_GT );
+
+        // imshow("mag", mag/magMax );
+        // imshow("mask", mask);
+
+        cv::dilate( mask, mask, Mat(), Point(-1,-1), 5 );
+
+        // imshow("dilated", mask);
+
+        // waitKey(0);
+        //
+        //
+        return mask;
+      }
+
+
 
     };
 
