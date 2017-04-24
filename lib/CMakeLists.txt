@@ -4,6 +4,11 @@ set( libcamhd_SRCS
       http_request.cpp
     movie_workers/optical_flow.cpp )
 
+if( USE_GPU )
+  list(APPEND libcamhd_SRCS
+  movie_workers/gpu_optical_flow.cpp )
+endif()
+
 include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}
 )

@@ -22,6 +22,9 @@
 #include "movie_workers/frame_statistics.h"
 #include "movie_workers/approx_derivative.h"
 #include "movie_workers/optical_flow.h"
+#ifdef USE_GPU
+#include "movie_workers/gpu_optical_flow.h"
+#endif
 
 #include "json.hpp"
 using json = nlohmann::json;
@@ -67,6 +70,12 @@ public:
 				TCLAP::ValueArg<int> stopAtArg("","stop-at","",false,stopAt,"frame number",cmd);
 				TCLAP::ValueArg<int> strideArg("","stride","Number of frames for stride",false,stride,"num of frames",cmd);
 
+#ifdef USE_GPU
+				TCLAP::SwitchArg gpuArg("","gpu","Use GPU",cmd,true);
+#else
+				TCLAP::SwitchArg gpuArg("","gpu","Use GPU",cmd,false);
+#endif
+
 				// Parse the argv array.
 				cmd.parse( argc, argv );
 
@@ -87,6 +96,8 @@ public:
 				jsonOut = jsonOutArg.getValue();
 				jsonOutSet = jsonOutArg.isSet();
 
+				useGpu = gpuArg.getValue();
+
 				path = pathsArg.getValue();
 
 			} catch (TCLAP::ArgException &e)  {
@@ -106,6 +117,8 @@ public:
 
 int parallelism;
 bool parallelismSet;
+
+bool useGpu;
 
 		int stopAt = -1;
 		int startAt = -1;
@@ -160,7 +173,16 @@ int main( int argc, char ** argv )
 
 	std::vector< FrameProcessorFactory > factories;
 	//processor = new FrameStatistics stats(movie);
+#ifdef USE_GPU
+	if( config.useGpu ) {
+		LOG(INFO) << "Using GPU-based optical flow";
+		factories.emplace_back( GpuOpticalFlowFactory );
+	} else {
+		factories.emplace_back( OpticalFlowFactory );
+	}
+#else
 	factories.emplace_back( OpticalFlowFactory );
+#endif
 	//processors.emplace_back( new FrameStatistics(movie) );
 
 	json mov,jsonStats;

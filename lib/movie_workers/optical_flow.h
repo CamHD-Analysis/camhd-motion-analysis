@@ -12,24 +12,17 @@ namespace CamHDMotionTracking {
   struct OpticalFlow : public FrameProcessor {
     OpticalFlow( const CamHDMovie &mov );
 
-    Ptr< DenseOpticalFlow > _flowAlgorithm;
-
     const float _imgScale = 0.25;
     const float _flowScale = 1.0;
 
-    int _t1, _t2;
-    cv::Mat _full1, _full2;
-    cv::Mat _resize1, _resize2;
-    cv::Mat _grey1, _grey2, _mask1;
     cv::Mat _scaledFlow, _scaledMask;
+    cv::Mat _full1, _full2;
 
     virtual const string jsonName();
 
-    virtual bool calcFlow( );
-
+    virtual bool calcFlow( int t1, int t2 );
 
     virtual json process( int f );
-
 
     void visualizeFlow( const cv::Mat &flow, const cv::Mat &f1, const cv::Mat &f2, const cv::Mat &mask = cv::Mat() );
 
@@ -41,7 +34,7 @@ namespace CamHDMotionTracking {
 
   };
 
-  std::shared_ptr<FrameProcessor> OpticalFlowFactory( const CamHDMovie &mov )
+  inline std::shared_ptr<FrameProcessor> OpticalFlowFactory( const CamHDMovie &mov )
   {
     return std::shared_ptr<FrameProcessor>(new OpticalFlow( mov ));
   }

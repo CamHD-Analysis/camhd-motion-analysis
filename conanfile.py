@@ -7,8 +7,9 @@ class LibMotionTracking(ConanFile):
   generators = "cmake"
   options = {"opencv_dir": "ANY",
             "build_parallel": [True, False],
+            "with_gpu": [True, False],
             "with_openmp": [True, False]}
-  default_options = "opencv_dir=''", "build_parallel=True", "with_openmp=False"
+  default_options = "opencv_dir=''", "build_parallel=True", "with_openmp=False", "with_gpu=False"
   requires =  "TCLAP/master@jmmut/testing", \
               "g3log/master@amarburg/testing"
 
@@ -29,6 +30,7 @@ class LibMotionTracking(ConanFile):
     cmake_opts += "-DOpenCV_DIR=%s " % (self.options.opencv_dir) if self.options.opencv_dir else ""
     cmake_opts += "-DBUILD_UNIT_TESTS=True " if self.scope.dev and self.scope.build_tests else ""
     cmake_opts += "-DUSE_OPENMP=%s " % (self.options.with_openmp)
+    cmake_opts += "-DUSE_GPU=%s " % (self.options.with_openmp)
 
     build_opts = "-j" if self.options.build_parallel else ""
 

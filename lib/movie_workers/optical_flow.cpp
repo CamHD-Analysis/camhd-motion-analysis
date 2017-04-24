@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include <g3log/g3log.hpp>
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -70,39 +72,41 @@ namespace CamHDMotionTracking {
 
 
     OpticalFlow::OpticalFlow( const CamHDMovie &mov )
-    : FrameProcessor( mov ),
-      _flowAlgorithm( cv::createOptFlow_DualTVL1() )
+    : FrameProcessor( mov )
     {;}
 
     const string OpticalFlow::jsonName()
     { return "similarity"; }
 
-    bool OpticalFlow::calcFlow( )
+
+    bool OpticalFlow::calcFlow( int t1, int t2 )
     {
-      if( _t1 <= 0 && _t2 > _movie.numFrames() ) {
-        LOG(WARNING) << "Frame calculation error: t1 = " << _t1 << " and t2 = " << _t2;
+      if( t1 <= 0 && t2 > _movie.numFrames() ) {
+        LOG(WARNING) << "Frame calculation error: t1 = " << t1 << " and t2 = " << t2;
         return false;
       }
 
-      _full1 = getFrame( _t1, 1.0 );
-      _full2 = getFrame( _t2, 1.0 );
+    _full1 = getFrame(t1, 1.0);
+    _full2 = getFrame(t2, 1.0);
 
       if( _full1.empty() || _full2.empty() ) {
-        LOG(WARNING) << "Got an empty frame for t1 = " << _t1 << " and t2 = " << _t2;
+        LOG(WARNING) << "Got an empty frame for t1 = " << t1 << " and t2 = " << t2;
         return false;
       }
 
-      cv::resize( _full1, _resize1, cv::Size(), _imgScale, _imgScale );
-      cv::resize( _full2, _resize2, cv::Size(), _imgScale, _imgScale );
+      cv::Mat resize1, resize2;
+      cv::resize( _full1, resize1, cv::Size(), _imgScale, _imgScale );
+      cv::resize( _full2, resize2, cv::Size(), _imgScale, _imgScale );
 
       // Convert to greyscale
-      cv::cvtColor( _resize1, _grey1, CV_RGB2GRAY );
-      cv::cvtColor( _resize2, _grey2, CV_RGB2GRAY );
+      cv::Mat grey1, grey2;
+      cv::cvtColor( resize1, grey1, CV_RGB2GRAY );
+      cv::cvtColor( resize2, grey2, CV_RGB2GRAY );
 
-      // Do some heuristics (TODO:  This could be moved earlier)
+      // Do some heuristic tests
       Scalar mean[2];
-      mean[0] = cv::mean( _full1 );
-      mean[1] = cv::mean( _full2 );
+      mean[0] = cv::mean( grey1 );
+      mean[1] = cv::mean( grey2 );
 
       const int darknessThreshold = 5;
       if( mean[0][0] < darknessThreshold || mean[1][0] < darknessThreshold ) {
@@ -110,11 +114,12 @@ namespace CamHDMotionTracking {
       }
 
       // Build mask
-      _mask1 = buildMask( _grey1 );
+      cv::Mat mask( buildMask( grey1  ) );
 
       // Optical flow calculation
-      cv::Mat flow( _grey1.size(), CV_32FC2 );
-      _flowAlgorithm->calc( _grey1, _grey2, flow );
+      cv::Mat flow( grey1.size(), CV_32FC2 );
+      auto flowAlgorithm( cv::createOptFlow_DualTVL1() );
+      flowAlgorithm->calc( grey1, grey2, flow );
 
       // Scale flow by dt
       //flow /= (t2-t1);
@@ -125,14 +130,13 @@ namespace CamHDMotionTracking {
       // Use optical flow to estimate transform
       // Downsample flow using linear interoplation
       cv::resize(flow, _scaledFlow, cv::Size(), _flowScale, _flowScale, INTER_LINEAR );
-      cv::resize( _mask1, _scaledMask, _scaledFlow.size() );
+      cv::resize(mask, _scaledMask, _scaledFlow.size() );
 
       // Scale flow values as well.
       _scaledFlow *= _flowScale;
 
       return true;
     }
-
 
     json OpticalFlow::process( int f )
     {
@@ -141,15 +145,14 @@ namespace CamHDMotionTracking {
 
       // Determine the bounds
       const int delta = 5;
-      _t1 = f-delta, _t2 = f+delta;
+      int t1 = f-delta, t2 = f+delta;
       if( f == 1 ) {
-        _t1 = f;
+        t1 = f;
       } else if( f ==_movie.numFrames() ) {
-        _t2 = _movie.numFrames();
+        t2 = _movie.numFrames();
       }
 
-      if( !calcFlow() ) return stats;
-
+      if( !calcFlow( t1, t2) ) return stats;
 
       auto meanFlow = cv::mean( _scaledFlow );
 
@@ -245,6 +248,7 @@ namespace CamHDMotionTracking {
 
 
       visualizeWarp( _full1, _full2, similarity, center );
+
       waitKey(1);
 
       return stats;
