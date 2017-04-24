@@ -5,11 +5,13 @@ class LibMotionTracking(ConanFile):
   version = "0.1"
   settings = "os", "compiler", "build_type", "arch"
   generators = "cmake"
-  options = {"opencv_dir": "ANY",  "build_parallel": [True, False]}
-  default_options = "opencv_dir=''", "build_parallel=True"
+  options = {"opencv_dir": "ANY",
+            "build_parallel": [True, False],
+            "with_openmp": [True, False]}
+  default_options = "opencv_dir=''", "build_parallel=True", "with_openmp=False"
   requires =  "TCLAP/master@jmmut/testing", \
               "g3log/master@amarburg/testing"
-              
+
   def config(self):
     #self.options[""].opencv_dir = self.options.opencv_dir
 
@@ -25,7 +27,8 @@ class LibMotionTracking(ConanFile):
     cmake = CMake(self.settings)
     cmake_opts = ""
     cmake_opts += "-DOpenCV_DIR=%s " % (self.options.opencv_dir) if self.options.opencv_dir else ""
-    cmake_opts += "-DBUILD_UNIT_TESTS=1 " if self.scope.dev and self.scope.build_tests else ""
+    cmake_opts += "-DBUILD_UNIT_TESTS=True " if self.scope.dev and self.scope.build_tests else ""
+    cmake_opts += "-DUSE_OPENMP=%s " % (self.options.with_openmp)
 
     build_opts = "-j" if self.options.build_parallel else ""
 

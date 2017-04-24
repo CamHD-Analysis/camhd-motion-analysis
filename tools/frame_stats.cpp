@@ -2,6 +2,10 @@
 #include <fstream>
 #include <sstream>
 
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+
 #include <g3log/g3log.hpp>
 #include <g3log/logworker.hpp>
 
@@ -147,6 +151,7 @@ int main( int argc, char ** argv )
 	const int startAt = (config.startAtSet ? std::max( 0, config.startAt ) : 0 );
 	const int stopAt = (config.stopAtSet ? std::min( movie.numFrames(), config.stopAt ) : movie.numFrames() );
 
+	#pragma omp parallel for shared(jsonStats)
 	for( auto i = startAt; i < stopAt && !doStop; i += config.stride ) {
 		auto frame = (i==0 ? 1 : i);
 		LOG(INFO) << "Processing frame " << frame;
@@ -158,9 +163,9 @@ int main( int argc, char ** argv )
 			j[proc->jsonName()] = proc->process(frame);
 		}
 
+		#pragma omp critical
 		if( !j.empty() ) jsonStats.push_back( j );
 	}
-
 
 	std::chrono::duration<double> elapsedSeconds = std::chrono::system_clock::now()-start;
 
