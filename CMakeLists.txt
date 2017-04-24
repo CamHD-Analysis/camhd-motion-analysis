@@ -17,17 +17,6 @@ if( USE_GPU )
 	list(APPEND OPENCV_COMPONENTS gpu )
 endif()
 
-option(USE_OPENMP "Enable OpenMP suport" OFF )
-if( USE_OPENMP )
-	add_definitions( -DUSE_OPENMP)
-	list(APPEND CMAKE_CXX_FLAGS -fopenmp)
-
-	if( APPLE )
-		set( CC /usr/local/opt/llvm/bin/clang++ )
-		list( APPEND CMAKE_CXX_FLAGS LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib")
-	endif()
-
-endif()
 
 find_package( CUDA )
 if( CUDA_VERSION )
@@ -45,7 +34,7 @@ find_package(Eigen3 REQUIRED )
 find_package(CURLpp REQUIRED )
 find_package(Ceres REQUIRED )
 
-set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+add_compile_options(-std=c++11)
 
 ## Set global include paths
 set( CAMHD_MOTRACK_INCLUDE_DIRS
@@ -67,6 +56,20 @@ set( COMMON_LIBRARIES
 			${CERES_LIBRARIES}
 			glog								# Ceres uses glog
 			curl )
+
+
+option(USE_OPENMP "Enable OpenMP suport" OFF )
+if( USE_OPENMP )
+	add_definitions( -DUSE_OPENMP)
+	add_compile_options(-fopenmp)
+	list(APPEND COMMON_LIBRARIES gomp )
+
+	if( APPLE )
+		set( CC /usr/local/opt/llvm/bin/clang++ )
+		list( APPEND CMAKE_CXX_FLAGS LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib")
+	endif()
+
+endif()
 
 add_subdirectory("lib/")
 add_subdirectory("tools/")

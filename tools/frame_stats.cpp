@@ -1,6 +1,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <chrono>
 
 #ifdef USE_OPENMP
 #include <omp.h>
@@ -137,7 +138,6 @@ int main( int argc, char ** argv )
 
 	auto movie( CamHDClient::getMovie( movURL ) );
 
-
 	// TODO.  Check for failure
 	LOG(INFO) << "File has " << movie.numFrames() << " frames";
 
@@ -146,41 +146,61 @@ int main( int argc, char ** argv )
 	processors.emplace_back( new OpticalFlow(movie) );
 	processors.emplace_back( new FrameStatistics(movie) );
 
-	json jsonStats;
+
+	json mov,jsonStats;
+	mov["movie"] = movie;
+	mov["stats"] = jsonStats;
 
 	const int startAt = (config.startAtSet ? std::max( 0, config.startAt ) : 0 );
 	const int stopAt = (config.stopAtSet ? std::min( movie.numFrames(), config.stopAt ) : movie.numFrames() );
 
 	#pragma omp parallel for shared(jsonStats)
-	for( auto i = startAt; i < stopAt && !doStop; i += config.stride ) {
-		auto frame = (i==0 ? 1 : i);
-		LOG(INFO) << "Processing frame " << frame;
-		json j;
+	for( auto i = startAt; i < stopAt; i += config.stride ) {
 
-    j["frameNum"] = i;
+		// This might seem like a funny way to break from a loop, but OpenMP does
+		// not allow breaking from within loops 
+		if( !doStop ) {
+			auto frame = (i==0 ? 1 : i);
+			LOG(INFO) << "Processing frame " << frame;
+			json j;
 
-		for( auto proc : processors ) {
-			j[proc->jsonName()] = proc->process(frame);
+	    j["frameNum"] = i;
+
+			for( auto proc : processors ) {
+				std::chrono::system_clock::time_point startProcess = std::chrono::system_clock::now();
+
+				j[proc->jsonName()] = proc->process(frame);
+
+				std::chrono::system_clock::time_point endProcess = std::chrono::system_clock::now();
+
+				j[proc->jsonName()]["duration_us"] = std::chrono::duration_cast<std::chrono::microseconds>(endProcess - startProcess).count();
+			}
+
+			#pragma omp critical
+			{
+				if( !j.empty() ) jsonStats.push_back( j );
+
+				// Save incremental result
+				if( config.jsonOutSet ) {
+					ofstream f( config.jsonOut.string() );
+					f << mov.dump(4) << endl;
+				}
+			}
 		}
-
-		#pragma omp critical
-		if( !j.empty() ) jsonStats.push_back( j );
 	}
 
 	std::chrono::duration<double> elapsedSeconds = std::chrono::system_clock::now()-start;
 
-	json mov;
-	mov["elapsedSystemTime"] = elapsedSeconds.count();
-	mov["movie"] = movie;
-	mov["stats"] = jsonStats;
+	mov["elapsedSystemTime_s"] = elapsedSeconds.count();
+
+		if( config.jsonOutSet ) {
+			ofstream f( config.jsonOut.string() );
+			f << mov.dump(4) << endl;
+		} else {
+			cout << mov.dump(4) << endl;
+		}
 
 
-	if( config.jsonOutSet ) {
-		ofstream f( config.jsonOut.string() );
-		f << mov.dump(4) << endl;
-	} else {
-		cout << mov.dump(4) << endl;
-	}
 
 	exit(0);
 }

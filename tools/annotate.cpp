@@ -139,7 +139,7 @@ int main( int argc, char ** argv )
 
 
 		// Draw translation
-		const float lineScale = 1.0;
+		const float lineScale = -1.0;   // Negative scaling so it points into direction of motion
 		cv::line( frame, center,
 										cv::Point(center.x + lineScale*tx[0], center.y + lineScale*tx[1] ),
 										cv::Scalar(255,0,0), 5 );
