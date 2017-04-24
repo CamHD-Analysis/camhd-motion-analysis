@@ -24,7 +24,6 @@ using namespace std;
 
 CamHDMovie CamHDClient::getMovie( const fs::path &url )
 {
-
   // Synchronous
   auto result( HTTPRequest::Get( url.string() ) );
 
@@ -39,6 +38,8 @@ CamHDMovie CamHDClient::getMovie( const fs::path &url )
 
 cv::Mat CamHDClient::getFrame( const CamHDMovie &mov, int frame )
 {
+  if( !mov.initialized() ) return cv::Mat();
+
   // As a special case, if frame > mov.NumFrames(), return a black image
   // (for now, query frame-1 for size and type)
     if( frame > mov.numFrames() || frame <= 0 ) {

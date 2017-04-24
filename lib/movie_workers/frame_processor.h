@@ -11,6 +11,9 @@
 #include "json.hpp"
 using json = nlohmann::json;
 
+#include "camhd_movie.h"
+#include "camhd_client.h"
+
 namespace CamHDMotionTracking {
 
   using namespace cv;
@@ -93,5 +96,7 @@ namespace CamHDMotionTracking {
 
     CamHDMovie _movie;
   };
+
+  typedef std::shared_ptr<FrameProcessor> (* FrameProcessorFactory)(const CamHDMovie &mov );
 
 }

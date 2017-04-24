@@ -13,9 +13,12 @@ namespace CamHDMotionTracking {
   class CamHDMovie {
   public:
     CamHDMovie();
+    CamHDMovie( const CamHDMovie &other );
     CamHDMovie( const string &url, const string &json = string("") );
 
     // void metadataFromJson( const string &json );
+
+    bool initialized() const { return _initialized; };
 
     const string &cacheUrl() const { return _cacheUrl; }
     const string &originalUrl() const { return _originalUrl; }
@@ -29,6 +32,7 @@ namespace CamHDMotionTracking {
       string _cacheUrl, _originalUrl;
       float _duration;
       int _numFrames;
+      bool _initialized;
 
       friend void from_json(const json& j, CamHDMovie& p);
   };

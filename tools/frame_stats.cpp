@@ -61,6 +61,8 @@ public:
 				TCLAP::ValueArg<std::string> jsonOutArg("o", "out", "File for JSON output (leave blank for stdout)", false,jsonOut.string(), "filename", cmd );
 				TCLAP::ValueArg<std::string> hostArg("","host","URL to host",false,DefaultCacheURL.string(),"url",cmd);
 
+				TCLAP::ValueArg<int> parallelismArg("j","parallelism","Number of threads", false, -1, "num of threads", cmd);
+
 				TCLAP::ValueArg<int> startAtArg("","start-at","",false,startAt,"frame number",cmd);
 				TCLAP::ValueArg<int> stopAtArg("","stop-at","",false,stopAt,"frame number",cmd);
 				TCLAP::ValueArg<int> strideArg("","stride","Number of frames for stride",false,stride,"num of frames",cmd);
@@ -73,6 +75,9 @@ public:
 
 				startAt = startAtArg.getValue();
 				startAtSet = startAtArg.isSet();
+
+				parallelismSet = parallelismArg.isSet();
+				parallelism = parallelismArg.getValue();
 
 				stopAt = stopAtArg.getValue();
 				stopAtSet = stopAtArg.isSet();
@@ -99,6 +104,8 @@ public:
 		fs::path jsonOut;
 		bool jsonOutSet;
 
+int parallelism;
+bool parallelismSet;
 
 		int stopAt = -1;
 		int startAt = -1;
@@ -130,6 +137,12 @@ int main( int argc, char ** argv )
 		exit(-1);
 	}
 
+#ifdef USE_OPENMP
+	if( config.parallelismSet && config.parallelism > 0 ) {
+		omp_set_num_threads( config.parallelism );
+	}
+#endif
+
 	// Measure time of execution
 	std::chrono::time_point<std::chrono::system_clock> start( std::chrono::system_clock::now() );
 
@@ -138,18 +151,20 @@ int main( int argc, char ** argv )
 
 	auto movie( CamHDClient::getMovie( movURL ) );
 
+	if( !movie.initialized() ) {
+		LOG(FATAL) << "Couldn't get information about movie.";
+	}
+
 	// TODO.  Check for failure
 	LOG(INFO) << "File has " << movie.numFrames() << " frames";
 
-	std::vector< std::shared_ptr< FrameProcessor > > processors;
+	std::vector< FrameProcessorFactory > factories;
 	//processor = new FrameStatistics stats(movie);
-	processors.emplace_back( new OpticalFlow(movie) );
-	processors.emplace_back( new FrameStatistics(movie) );
-
+	factories.emplace_back( OpticalFlowFactory );
+	//processors.emplace_back( new FrameStatistics(movie) );
 
 	json mov,jsonStats;
 	mov["movie"] = movie;
-	mov["stats"] = jsonStats;
 
 	const int startAt = (config.startAtSet ? std::max( 0, config.startAt ) : 0 );
 	const int stopAt = (config.stopAtSet ? std::min( movie.numFrames(), config.stopAt ) : movie.numFrames() );
@@ -158,7 +173,7 @@ int main( int argc, char ** argv )
 	for( auto i = startAt; i < stopAt; i += config.stride ) {
 
 		// This might seem like a funny way to break from a loop, but OpenMP does
-		// not allow breaking from within loops 
+		// not allow breaking from within loops
 		if( !doStop ) {
 			auto frame = (i==0 ? 1 : i);
 			LOG(INFO) << "Processing frame " << frame;
@@ -166,9 +181,10 @@ int main( int argc, char ** argv )
 
 	    j["frameNum"] = i;
 
-			for( auto proc : processors ) {
+			for( auto factory : factories ) {
 				std::chrono::system_clock::time_point startProcess = std::chrono::system_clock::now();
 
+				auto proc = factory(movie);
 				j[proc->jsonName()] = proc->process(frame);
 
 				std::chrono::system_clock::time_point endProcess = std::chrono::system_clock::now();
@@ -179,6 +195,7 @@ int main( int argc, char ** argv )
 			#pragma omp critical
 			{
 				if( !j.empty() ) jsonStats.push_back( j );
+				mov["stats"] = jsonStats;
 
 				// Save incremental result
 				if( config.jsonOutSet ) {
