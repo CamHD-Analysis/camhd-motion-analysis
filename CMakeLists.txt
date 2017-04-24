@@ -17,6 +17,18 @@ if( USE_GPU )
 	list(APPEND OPENCV_COMPONENTS gpu )
 endif()
 
+option(USE_OPENMP "Enable OpenMP suport" OFF )
+if( USE_OPENMP )
+	add_definitions( -DUSE_OPENMP)
+	list(APPEND CMAKE_CXX_FLAGS -fopenmp)
+
+	if( APPLE )
+		set( CC /usr/local/opt/llvm/bin/clang++ )
+		list( APPEND CMAKE_CXX_FLAGS LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib")
+	endif()
+
+endif()
+
 find_package( CUDA )
 if( CUDA_VERSION )
 	message("Found CUDA version ${CUDA_VERSION}")
