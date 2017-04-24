@@ -49,6 +49,8 @@ namespace CamHDMotionTracking {
       if(j.find("cacheURL") != j.end() ) p._cacheUrl         = j["cacheURL"];
       if(j.find("Duration") != j.end() ) p._duration    = j["Duration"];
       if(j.find("NumFrames") != j.end() ) p._numFrames   = j["NumFrames"];
+      
+      p._initialized = true;
   }
 
 }

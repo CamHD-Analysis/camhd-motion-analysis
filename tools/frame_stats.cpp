@@ -132,7 +132,7 @@ bool useGpu;
 int main( int argc, char ** argv )
 {
 	auto worker = g3::LogWorker::createLogWorker();
-  auto handle= worker->addDefaultLogger(argv[0],".");
+  //auto handle= worker->addDefaultLogger(argv[0],".");
   g3::initializeLogging(worker.get());
 
   // RAAI initializer for curlpp
