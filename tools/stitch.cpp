@@ -164,20 +164,20 @@ int main( int argc, char ** argv )
 		LOG(INFO) << coeffs;
 
 		// Project corners of image into composite
-		cv::Matx33d cam( 1, 0, center.x, 0, 1, center.y, 0, 0, 1 );
+		cv::Matx33d cam( 1, 0, -center.x, 0, 1, -center.y, 0, 0, 1 );
 		cv::Matx33d sim( s*cos(theta), s*sin(theta), tx[0],
 		                    -s*sin(theta), s*cos(theta), tx[1],
 											 0, 0, 1 );
 
-											 LOG(INFO) << "Cam: " << cam;
-											 LOG(INFO) << "Sim: " << sim;
+	 LOG(INFO) << "Cam: " << cam;
+	 LOG(INFO) << "Sim: " << sim;
 
 		array<cv::Point,4> corners = { cv::Point(0,0),
 																		cv::Point(frame.size().width, 0),
 																		cv::Point(frame.size().width, frame.size().height ),
 																		cv::Point(0,frame.size().height)};
 
-		cv::Matx33d warp( cam.inv() * sim * cam );
+		cv::Matx33d warp( cam.inv() * sim.inv() * cam );
 
 		for( auto &corner : corners ) {
 			auto proj = warp * cv::Vec3d( corner.x, corner.y, 1 );
@@ -235,7 +235,7 @@ LOG(INFO) << "width: " << width << " ; height: " << height;
 
 	}
 
-	cv::addWeighted( newComposite, 1.0, newWarped, 1.0, 0.0, newComposite );
+	cv::addWeighted( newComposite, 0.5, newWarped, 0.5, 0.0, newComposite );
 
 		composite = newComposite;
 
