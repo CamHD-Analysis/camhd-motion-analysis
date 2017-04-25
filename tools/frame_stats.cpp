@@ -71,9 +71,9 @@ public:
 				TCLAP::ValueArg<int> strideArg("","stride","Number of frames for stride",false,stride,"num of frames",cmd);
 
 #ifdef USE_GPU
-				TCLAP::SwitchArg gpuArg("","gpu","Use GPU",cmd,true);
+				TCLAP::SwitchArg gpuArg("g","no-gpu","Use GPU",cmd,true);
 #else
-				TCLAP::SwitchArg gpuArg("","gpu","Use GPU",cmd,false);
+				TCLAP::SwitchArg gpuArg("g","gpu","Use GPU",cmd,false);
 #endif
 
 				// Parse the argv array.

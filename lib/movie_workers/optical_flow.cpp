@@ -221,6 +221,8 @@ namespace CamHDMotionTracking {
 
       stats["imgScale"] = _imgScale;
       stats["flowScale"] = _flowScale;
+      stats["fromFrame"] = t1;
+      stats["toFrame"] = t2;
 
       const double totalScale = _flowScale * _imgScale;
 
@@ -346,7 +348,7 @@ namespace CamHDMotionTracking {
       cv::resize( f2, roiTwo, roiTwo.size() );
 
       imshow( "composite", composite);
-      // waitKey(0);
+      waitKey(1);
     }
 
 

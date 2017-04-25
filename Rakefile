@@ -38,7 +38,7 @@ buildTypes.each { |build_type|
 
 
 task :process do
-  sh "build-Release/bin/frame_stats -o CAMHDA301-20160101T000000Z.json --stride 10 /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z.mov
+  sh "build-Release/bin/frame_stats --no-gpu -o CAMHDA301-20160101T000000Z.json --stride 10 /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z.mov
 "
 end
 
