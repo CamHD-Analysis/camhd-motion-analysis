@@ -5,7 +5,10 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/video/video.hpp>
 
+#include "json.hpp"
+
 #include "frame_processor.h"
+#include "similarity.h"
 
 namespace CamHDMotionTracking {
 
@@ -22,7 +25,9 @@ namespace CamHDMotionTracking {
 
     virtual bool calcFlow( int t1, int t2 );
 
-    virtual json process( int f );
+    virtual CalculatedSimilarity estimateSimilarity( int f );
+
+    virtual nlohmann::json asJson( int f );
 
     void visualizeFlow( const cv::Mat &flow, const cv::Mat &f1, const cv::Mat &f2, const cv::Mat &mask = cv::Mat() );
 

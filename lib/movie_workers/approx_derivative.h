@@ -98,7 +98,7 @@ namespace CamHDMotionTracking {
     { return "similarity"; }
 
 
-    virtual json process( int f )
+    virtual json asJson( int f )
     {
       json stats;
       stats["valid"] = false;

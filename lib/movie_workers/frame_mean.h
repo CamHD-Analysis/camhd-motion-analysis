@@ -6,6 +6,8 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
+#include "json.hpp"
+
 #include "frame_processor.h"
 
 #include "json.hpp"
@@ -19,8 +21,8 @@ namespace CamHDMotionTracking {
     : FrameProcessor(mov)
     {;}
 
-    json process( int f ) {
-      return json();
+    nlohmann::json asJson( int f ) {
+      return nlohmann::json();
     }
 
     // // Defines a "soft equal"

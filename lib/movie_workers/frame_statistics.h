@@ -15,12 +15,12 @@ namespace CamHDMotionTracking {
     :FrameProcessor( mov )
     {;}
 
-    virtual const string jsonName() 
+    virtual const string jsonName()
     { return "statistics"; }
 
-    virtual json process( int f )
+    virtual nlohmann::json asJson( int f )
     {
-      json stats;
+      nlohmann::json stats;
       cv::Mat img( getFrame(f) );
       if( img.empty() ) return stats;
 

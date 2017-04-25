@@ -207,7 +207,7 @@ int main( int argc, char ** argv )
 				std::chrono::system_clock::time_point startProcess = std::chrono::system_clock::now();
 
 				auto proc = factory(movie);
-				j[proc->jsonName()] = proc->process(frame);
+				j[proc->jsonName()] = proc->asJson(frame);
 
 				std::chrono::system_clock::time_point endProcess = std::chrono::system_clock::now();
 

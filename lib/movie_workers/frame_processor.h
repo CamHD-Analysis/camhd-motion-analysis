@@ -28,9 +28,9 @@ namespace CamHDMotionTracking {
 
     // Thin convenience wrapper around process()
     json operator()( int f )
-    { return process(f); }
+    { return asJson(f); }
 
-    virtual json process( int f ) = 0;
+    virtual json asJson( int f ) = 0;
 
 
     bool compare( int a, int b ) {
