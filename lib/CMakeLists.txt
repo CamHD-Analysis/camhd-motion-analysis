@@ -2,6 +2,7 @@ set( libcamhd_SRCS
       camhd_client.cpp
       camhd_movie.cpp
       http_request.cpp
+      regions.cpp
     movie_workers/optical_flow.cpp )
 
 if( USE_GPU )

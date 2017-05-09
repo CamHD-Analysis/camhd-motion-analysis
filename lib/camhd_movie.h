@@ -45,11 +45,11 @@ namespace CamHDMotionTracking {
   }
 
   inline void from_json(const json& j, CamHDMovie& p) {
-      if(j.find("URL") != j.end() ) p._originalUrl = j["URL"];
-      if(j.find("cacheURL") != j.end() ) p._cacheUrl         = j["cacheURL"];
+      if(j.find("URL") != j.end() ) p._originalUrl      = j["URL"];
+      if(j.find("cacheURL") != j.end() ) p._cacheUrl    = j["cacheURL"];
       if(j.find("Duration") != j.end() ) p._duration    = j["Duration"];
       if(j.find("NumFrames") != j.end() ) p._numFrames   = j["NumFrames"];
-      
+
       p._initialized = true;
   }
 
