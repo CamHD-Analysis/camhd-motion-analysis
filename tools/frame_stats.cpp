@@ -7,9 +7,6 @@
 #include <omp.h>
 #endif
 
-#include <g3log/g3log.hpp>
-#include <g3log/logworker.hpp>
-
 #include <curlpp/cURLpp.hpp>
 
 #include <tclap/CmdLine.h>
@@ -28,6 +25,9 @@
 
 #include "json.hpp"
 using json = nlohmann::json;
+
+#include <g3log/g3log.hpp>
+#include <g3log/logworker.hpp>
 
 using namespace std;
 //using namespace cv;
@@ -70,11 +70,8 @@ public:
 				TCLAP::ValueArg<int> stopAtArg("","stop-at","",false,stopAt,"frame number",cmd);
 				TCLAP::ValueArg<int> strideArg("","stride","Number of frames for stride",false,stride,"num of frames",cmd);
 
-#ifdef USE_GPU
-				TCLAP::SwitchArg gpuArg("g","no-gpu","Use GPU",cmd,true);
-#else
 				TCLAP::SwitchArg gpuArg("g","gpu","Use GPU",cmd,false);
-#endif
+				TCLAP::SwitchArg displayArg("x","display","Show results in window", cmd, false);
 
 				// Parse the argv array.
 				cmd.parse( argc, argv );
@@ -97,6 +94,7 @@ public:
 				jsonOutSet = jsonOutArg.isSet();
 
 				useGpu = gpuArg.getValue();
+				doDisplay = displayArg.getValue();
 
 				path = pathsArg.getValue();
 
@@ -115,10 +113,10 @@ public:
 		fs::path jsonOut;
 		bool jsonOutSet;
 
-int parallelism;
-bool parallelismSet;
+		int parallelism, numThreads;
+		bool parallelismSet;
 
-bool useGpu;
+		bool useGpu, doDisplay;
 
 		int stopAt = -1;
 		int startAt = -1;
@@ -171,18 +169,21 @@ int main( int argc, char ** argv )
 	// TODO.  Check for failure
 	LOG(INFO) << "File has " << movie.numFrames() << " frames";
 
-	std::vector< FrameProcessorFactory > factories;
+	std::vector< FrameProcessorFactory::Ptr > factories;
 	//processor = new FrameStatistics stats(movie);
 #ifdef USE_GPU
 	if( config.useGpu ) {
 		LOG(INFO) << "Using GPU-based optical flow";
-		factories.emplace_back( GpuOpticalFlowFactory );
-	} else {
-		factories.emplace_back( OpticalFlowFactory );
-	}
-#else
-	factories.emplace_back( OpticalFlowFactory );
+		auto factory = new GPUOpticalFlowFactory();
+		factory->doDisplay = config.doDisplay;
+		factories.emplace_back( factory );
+	} else
 #endif
+	{
+		auto factory = new OpticalFlowFactory();
+		factory->doDisplay = config.doDisplay;
+		factories.emplace_back( factory );
+	}
 	//processors.emplace_back( new FrameStatistics(movie) );
 
 	json mov,jsonStats;
@@ -203,10 +204,10 @@ int main( int argc, char ** argv )
 
 	    j["frameNum"] = i;
 
-			for( auto factory : factories ) {
+			for( auto factory = factories.begin(); factory != factories.end(); ++factory ) {
 				std::chrono::system_clock::time_point startProcess = std::chrono::system_clock::now();
 
-				auto proc = factory(movie);
+				auto proc = (*(*factory))(movie);
 				j[proc->jsonName()] = proc->asJson(frame);
 
 				std::chrono::system_clock::time_point endProcess = std::chrono::system_clock::now();
@@ -239,6 +240,8 @@ int main( int argc, char ** argv )
 			cout << mov.dump(4) << endl;
 		}
 
+
+		LOG(DEBUG) << "Completed in " << elapsedSeconds.count() << " seconds";
 
 
 	exit(0);

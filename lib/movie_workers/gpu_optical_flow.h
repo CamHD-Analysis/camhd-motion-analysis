@@ -19,9 +19,18 @@ namespace CamHDMotionTracking {
 
   };
 
-  std::shared_ptr<FrameProcessor> GpuOpticalFlowFactory( const CamHDMovie &mov )
-  {
-    return std::shared_ptr<FrameProcessor>(new GpuOpticalFlow( mov ));
-  }
+  class GPUOpticalFlowFactory : public FrameProcessorFactory {
+  public:
+
+    virtual std::shared_ptr<FrameProcessor> operator()( const CamHDMovie &mov )
+    {
+      auto flow =  std::shared_ptr<FrameProcessor>(new GpuOpticalFlow( mov ));
+      flow->doDisplay = doDisplay;
+
+      return flow;
+    }
+
+  };
+
 
 }

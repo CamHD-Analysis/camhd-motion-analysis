@@ -10,6 +10,8 @@
 #include "frame_processor.h"
 #include "similarity.h"
 
+#include "factory.h"
+
 namespace CamHDMotionTracking {
 
   struct OpticalFlow : public FrameProcessor {
@@ -33,15 +35,22 @@ namespace CamHDMotionTracking {
 
     void visualizeWarp( const cv::Mat &f1, const cv::Mat &f2, double *scaledSim, double *center );
 
-
     cv::Mat buildMask( const cv::Mat &grey );
 
 
   };
 
-  inline std::shared_ptr<FrameProcessor> OpticalFlowFactory( const CamHDMovie &mov )
-  {
-    return std::shared_ptr<FrameProcessor>(new OpticalFlow( mov ));
-  }
+  class OpticalFlowFactory : public FrameProcessorFactory {
+  public:
+
+    virtual std::shared_ptr<FrameProcessor> operator()( const CamHDMovie &mov )
+    {
+      auto flow =  std::shared_ptr<FrameProcessor>(new OpticalFlow( mov ));
+      flow->doDisplay = doDisplay;
+
+      return flow;
+    }
+
+  };
 
 }

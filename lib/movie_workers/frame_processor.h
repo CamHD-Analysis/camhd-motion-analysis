@@ -21,7 +21,8 @@ namespace CamHDMotionTracking {
 
   struct FrameProcessor {
     FrameProcessor( const CamHDMovie &mov )
-    : _movie(mov)
+    : _movie(mov),
+      doDisplay( false )
     {;}
 
     virtual const string jsonName() = 0;
@@ -93,10 +94,10 @@ namespace CamHDMotionTracking {
 
 
 
+bool doDisplay;
+
 
     CamHDMovie _movie;
   };
-
-  typedef std::shared_ptr<FrameProcessor> (* FrameProcessorFactory)(const CamHDMovie &mov );
 
 }

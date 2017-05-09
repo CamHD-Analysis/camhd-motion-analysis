@@ -51,8 +51,8 @@ namespace CamHDMotionTracking {
 
       // Do some heuristics (TODO:  This could be moved earlier)
       Scalar mean[2], stdDev[2];
-      gpu::meanStdDev( gFull1, mean[0], stdDev[0] );
-      gpu::meanStdDev( gFull2, mean[1], stdDev[1] );
+      gpu::meanStdDev( gGrey1, mean[0], stdDev[0] );
+      gpu::meanStdDev( gGrey2, mean[1], stdDev[1] );
 
       const int darknessThreshold = 5;
       if( mean[0][0] < darknessThreshold || mean[1][0] < darknessThreshold ) {
@@ -88,43 +88,7 @@ namespace CamHDMotionTracking {
 
       return true;
     }
-
-
-    // Mat GpuOpticalFlow::buildMask( const Mat &grey )
-    // {
-    //   Mat sobelX, sobelY, mag, angle;
-    //
-    //   Sobel( grey, sobelX, CV_32F, 1, 0 );
-    //   Sobel( grey, sobelY, CV_32F, 0, 1 );
-    //   cartToPolar( sobelX, sobelY, mag, angle );
-    //
-    //   const float magNorm = std::max( norm( sobelX, NORM_INF ), norm( sobelY, NORM_INF ));
-    //
-    //   // imshow( "sobelX", sobelX/magNorm );
-    //   // imshow( "sobelY", sobelY/magNorm );
-    //
-    //   // What statistical model for the magnitude
-    //
-    //
-    //
-    //   Mat mask;
-    //   const double magMax( norm( mag, NORM_INF ) );
-    //   const double threshold = 0.1 * magMax;
-    //
-    //   compare( mag, threshold, mask, CMP_GT );
-    //
-    //   // imshow("mag", mag/magMax );
-    //   // imshow("mask", mask);
-    //
-    //   dilate( mask, mask, Mat(), Point(-1,-1), 5 );
-    //
-    //   // imshow("dilated", mask);
-    //
-    //   // waitKey(0);
-    //   //
-    //   //
-    //   return mask;
-    // }
+\
 
 
 }
