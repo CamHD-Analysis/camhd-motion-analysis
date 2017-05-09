@@ -140,10 +140,10 @@ namespace CamHDMotionTracking {
 
   json OpticalFlow::asJson( int f )
   {
-    return estimateSimilarity(f);
+    return estimateVelocity(f);
   }
 
-  CalculatedSimilarity OpticalFlow::estimateSimilarity( int f )
+  CalculatedSimilarity OpticalFlow::estimateVelocity( int f )
   {
 
     // Determine the bounds
@@ -154,6 +154,12 @@ namespace CamHDMotionTracking {
     } else if( f ==_movie.numFrames() ) {
       t2 = _movie.numFrames();
     }
+
+    return estimateSimilarity( t1, t2 );
+  }
+
+  CalculatedSimilarity OpticalFlow::estimateSimilarity( int t1, int t2 )
+  {  
 
     if( !calcFlow( t1, t2) ) return CalculatedSimilarity();
 

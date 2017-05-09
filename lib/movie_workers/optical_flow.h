@@ -27,7 +27,8 @@ namespace CamHDMotionTracking {
 
     virtual bool calcFlow( int t1, int t2 );
 
-    virtual CalculatedSimilarity estimateSimilarity( int f );
+    virtual CalculatedSimilarity estimateVelocity( int f );
+    virtual CalculatedSimilarity estimateSimilarity( int f, int t );
 
     virtual nlohmann::json asJson( int f );
 

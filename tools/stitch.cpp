@@ -12,6 +12,9 @@
 #include "camhd_client.h"
 #include "interval.h"
 #include "regions.h"
+#include "movie_workers/optical_flow.h"
+
+#include "stitcher.h"
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -129,17 +132,61 @@ int main( int argc, char ** argv )
 	// For now assume reverse ordering
 	Regions regions( fwdRegions.reverse() );
 
-	const int baseRegion = 0;
+	const int baseFrame = 0;
 
 	for( const auto &region : regions ) {
 		LOG(INFO) << "Region from " << region.start << " to " << region.end;
 	}
 
-	vector< cv::Mat > frames;
+	Graph graph;
+
+	vector< int > frames;
 
 	transform( regions.begin(), regions.end(), std::back_inserter(frames),
-						[&movie]( const Regions::Region &region ) {
-							return movie.getFrame( (region.start + region.end)/2 ); } );
+						[]( const Regions::Region &region ) {
+							return region.mean(); } );
+
+		// Go sequentially for now
+		int lastGood = baseFrame;
+		for( auto i = lastGood + 1; i < regions.size(); ++i ) {
+			OpticalFlow flow( movie );
+
+			const int f1 = frames[ lastGood ];
+			const int f2 = frames[ i ];
+
+			LOG(INFO) << "Comparing " << f1 << " to " << f2;
+			auto sim = flow.estimateSimilarity( f1, f2 );
+
+			if( config.doDisplay) {
+				imshow("lastGood", movie.getFrame( f1 ) );
+				imshow("f2", movie.getFrame( f2 ) );
+
+				waitKey(0);
+			}
+
+			// Heuristic tests on sim
+			//LOG(INFO) << sim;
+
+			const float scaleThreshold = 0.02;
+
+			if( sim.scale > (1+scaleThreshold) || sim.scale < (1-scaleThreshold) ) {
+				LOG(INFO) << "Scale change between " << f1 << " and " << f2 << " == " << sim.scale << ", continuing";
+				continue;
+			}
+
+
+			// Success, add edge
+			LOG(INFO) << "Adding edge between " << f1 << " and " << f2;
+			graph.addEdge( lastGood, i, sim );
+
+			lastGood = i;
+		}
+
+
+
+
+
+
 
 
 	exit(0);

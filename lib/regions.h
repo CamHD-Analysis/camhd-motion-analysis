@@ -20,6 +20,8 @@ namespace CamHDMotionTracking {
       : start(_start), end(_end )
       {;}
 
+      int mean() const { return (start+end)/2; }
+
       int start, end;
     };
 
@@ -29,6 +31,8 @@ namespace CamHDMotionTracking {
     Regions reverse() const;
 
     void load( const json &j );
+
+    const Region &operator[](int i) const { return _regions[i]; }
 
     std::vector< Region >::iterator begin() { return _regions.begin(); }
     std::vector< Region >::iterator end()    { return _regions.end(); }
