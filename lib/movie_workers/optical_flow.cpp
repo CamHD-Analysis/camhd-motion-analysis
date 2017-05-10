@@ -20,6 +20,11 @@ namespace CamHDMotionTracking {
 
   //=====
 
+  const std::string OpticalFlow::OPTICAL_FLOW_JSON_NAME = "optical_flow";
+  const std::string OpticalFlow::OPTICAL_FLOW_JSON_VERSION = "1.0";
+
+
+
   struct OpticalFlowFunctor {
     OpticalFlowFunctor( const cv::Vec2f &delta, const cv::Point &pt )
     : _delta(delta), _pt( pt )
@@ -159,7 +164,7 @@ namespace CamHDMotionTracking {
   }
 
   CalculatedSimilarity OpticalFlow::estimateSimilarity( int t1, int t2 )
-  {  
+  {
 
     if( !calcFlow( t1, t2) ) return CalculatedSimilarity();
 

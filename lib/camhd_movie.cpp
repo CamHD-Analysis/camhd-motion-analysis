@@ -8,11 +8,16 @@ using json = nlohmann::json;
 
 namespace CamHDMotionTracking {
 
+  const std::string CamHDMovie::MOVIE_JSON_TAG = "movie";
+  const std::string CamHDMovie::MOVIE_JSON_VERSION = "1.0";
+
+  // Default constructor
   CamHDMovie::CamHDMovie( void )
     : _cacheUrl(), _originalUrl(), _numFrames(0), _duration(0.0), _initialized(false)
     {
     }
 
+  // Copy constructor
   CamHDMovie::CamHDMovie( const CamHDMovie &other )
     : _cacheUrl( other.cacheUrl() ), _originalUrl( other.originalUrl() ),
       _numFrames( other.numFrames() ), _duration( other.duration() ), _initialized(true)

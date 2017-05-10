@@ -6,6 +6,9 @@ namespace CamHDMotionTracking {
 
   using cv::Vec2d;
 
+  static const std::string SIMILARITY_JSON_NAME = "similarity";
+  static const std::string SIMILARITY_JSON_VERISON = "1.0";
+
   struct CalculatedSimilarity {
 
     CalculatedSimilarity()
@@ -49,6 +52,7 @@ namespace CamHDMotionTracking {
     j["toFrame"] = sim.toFrame;
 
     double values[4] = {sim.scale, sim.theta, sim.trans[0], sim.trans[1]};
+
     j["similarity"] = values;
     double c[2] = {sim.center[0],sim.center[1]};
     j["center"] = c;

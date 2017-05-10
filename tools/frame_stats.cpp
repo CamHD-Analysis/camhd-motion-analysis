@@ -186,8 +186,17 @@ int main( int argc, char ** argv )
 	}
 	//processors.emplace_back( new FrameStatistics(movie) );
 
-	json mov,jsonStats;
-	mov["movie"] = movie;
+	json mov, jsonStats;
+
+	mov << movie;
+	addJSONContents( mov, "frame_stats", "1.0" );
+
+	mov["contents"]["frame_stats"] = json::object();
+
+	for( auto factory : factories ) {
+		factory->addJSONContents( mov["contents"]["frame_stats"] );
+	}
+
 
 	const int startAt = (config.startAtSet ? std::max( 0, config.startAt ) : 0 );
 	const int stopAt = (config.stopAtSet ? std::min( movie.numFrames(), config.stopAt ) : movie.numFrames() );
@@ -202,12 +211,12 @@ int main( int argc, char ** argv )
 			LOG(INFO) << "Processing frame " << frame;
 			json j;
 
-	    j["frameNum"] = i;
+	    j["frame_number"] = i;
 
-			for( auto factory = factories.begin(); factory != factories.end(); ++factory ) {
+			for( auto factory : factories ) {
 				std::chrono::system_clock::time_point startProcess = std::chrono::system_clock::now();
 
-				auto proc = (*(*factory))(movie);
+				auto proc = (*factory)(movie);
 				j[proc->jsonName()] = proc->asJson(frame);
 
 				std::chrono::system_clock::time_point endProcess = std::chrono::system_clock::now();
@@ -218,7 +227,7 @@ int main( int argc, char ** argv )
 			#pragma omp critical
 			{
 				if( !j.empty() ) jsonStats.push_back( j );
-				mov["stats"] = jsonStats;
+				mov["frame_stats"] = jsonStats;
 
 				// Save incremental result
 				if( config.jsonOutSet ) {
@@ -231,7 +240,8 @@ int main( int argc, char ** argv )
 
 	std::chrono::duration<double> elapsedSeconds = std::chrono::system_clock::now()-start;
 
-	mov["elapsedSystemTime_s"] = elapsedSeconds.count();
+	addJSONContents( mov, "timing", "1.0" );
+	mov["timing"]["elapsed_system_time_s"] = elapsedSeconds.count();
 
 		if( config.jsonOutSet ) {
 			ofstream f( config.jsonOut.string() );
@@ -239,7 +249,6 @@ int main( int argc, char ** argv )
 		} else {
 			cout << mov.dump(4) << endl;
 		}
-
 
 		LOG(DEBUG) << "Completed in " << elapsedSeconds.count() << " seconds";
 

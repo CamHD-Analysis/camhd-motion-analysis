@@ -10,12 +10,17 @@
 #include "frame_processor.h"
 #include "similarity.h"
 
+#include "json_contents.h"
+
 #include "factory.h"
 
 namespace CamHDMotionTracking {
 
   struct OpticalFlow : public FrameProcessor {
     OpticalFlow( const CamHDMovie &mov );
+
+    static const std::string OPTICAL_FLOW_JSON_NAME;
+    static const std::string OPTICAL_FLOW_JSON_VERSION;
 
     const float _imgScale = 0.25;
     const float _flowScale = 1.0;
@@ -52,6 +57,14 @@ namespace CamHDMotionTracking {
       return flow;
     }
 
+    // Does this requires RTTI?
+    virtual void addJSONContents( json &j ) {
+      CamHDMotionTracking::addJSONContents( j, OpticalFlow::OPTICAL_FLOW_JSON_NAME, OpticalFlow::OPTICAL_FLOW_JSON_VERSION );
+    }
+
   };
+
+
+
 
 }
