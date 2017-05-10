@@ -4,6 +4,7 @@ set( libcamhd_SRCS
       http_request.cpp
       regions.cpp
       json_contents.cpp
+      similarity.cpp
     movie_workers/optical_flow.cpp )
 
 if( USE_GPU )

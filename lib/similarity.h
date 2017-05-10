@@ -2,6 +2,9 @@
 
 #include <opencv2/core/core.hpp>
 
+#include "json.hpp"
+using json = nlohmann::json;
+
 namespace CamHDMotionTracking {
 
   using cv::Vec2d;
@@ -9,7 +12,21 @@ namespace CamHDMotionTracking {
   static const std::string SIMILARITY_JSON_NAME = "similarity";
   static const std::string SIMILARITY_JSON_VERISON = "1.0";
 
-  struct CalculatedSimilarity {
+  struct Similarity {
+
+    Similarity( double sc = 1.0, double th = 0.0, double tx = 0.0, double ty = 0.0 )
+    : scale(sc), theta(th), trans( Vec2d(tx,ty) )
+    {;}
+
+    double scale, theta;
+    Vec2d trans, center;
+
+    Similarity &operator=( const Similarity &other );
+    Similarity operator*( const Similarity &other );
+
+  };
+
+  struct CalculatedSimilarity : public Similarity {
 
     CalculatedSimilarity()
     : valid(false)
@@ -36,8 +53,7 @@ namespace CamHDMotionTracking {
     CalculatedSimilarity &setToFrame( int t )
     { toFrame = t; return *this; }
 
-    double scale, theta;
-    Vec2d trans, center;
+
     float imgScale, flowScale;
     int fromFrame, toFrame;
     bool valid;
@@ -58,6 +74,10 @@ namespace CamHDMotionTracking {
     j["center"] = c;
     j["valid"] = sim.valid;
 
+  }
+
+  inline operator<<( ostream &out, const Similarity &sim ) {
+    out << cv::Vec4d( sim.scale, sim.theta, sim.trans[0], sim.trans[1]);
   }
 
 }

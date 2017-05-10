@@ -35,6 +35,7 @@ const fs::path DefaultCacheURL( "https://camhd-app-dev.appspot.com/v1/org/oceano
 class StitchConfig {
 public:
 	StitchConfig()
+	: skipZoom(true)
 	{}
 
 		bool parseArgs( int argc, char **argv )
@@ -42,7 +43,7 @@ public:
 			try {
 				TCLAP::CmdLine cmd("Command description message", ' ', "0.0");
 
-				TCLAP::UnlabeledValueArg<std::string> jsonArg("json","JSON file",true,"","Path",cmd);
+			//	TCLAP::UnlabeledValueArg<std::string> jsonArg("json","JSON file",true,"","Path",cmd);
 
 				//TCLAP::ValueArg<std::string> jsonInArg("j", "json", "File for JSON output (leave blank for stdout)", false,jsonOut.string(), "filename", cmd );
 				TCLAP::ValueArg<std::string> hostArg("","host","URL to host",false,DefaultCacheURL.string(),"url",cmd);
@@ -73,7 +74,7 @@ public:
 				useGpu = gpuArg.getValue();
 				doDisplay = displayArg.getValue();
 
-				jsonIn = jsonArg.getValue();
+				//jsonIn = jsonArg.getValue();
 
 			} catch (TCLAP::ArgException &e)  {
 				LOG(FATAL) << "error: " << e.error() << " for arg " << e.argId();
@@ -84,7 +85,7 @@ public:
 
 
 		fs::path cacheURL;
-		fs::path jsonIn;
+		//fs::path jsonIn;
 
 		fs::path regionFile;
 
@@ -92,6 +93,7 @@ public:
 		int startAt = -1;
 
 		bool startAtSet, stopAtSet;
+		bool skipZoom;
 
 		bool useGpu, doDisplay;
 
@@ -127,63 +129,127 @@ int main( int argc, char ** argv )
 
 	CamHDMovie movie( j["movie"].get<CamHDMovie>() );
 
-	Regions fwdRegions( j );
-
-	// For now assume reverse ordering
-	Regions regions( fwdRegions.reverse() );
+	Regions regions;
+	j >> regions;
 
 	const int baseFrame = 0;
 
-	for( const auto &region : regions ) {
-		LOG(INFO) << "Region from " << region.start << " to " << region.end;
-	}
-
 	Graph graph;
 
-	vector< int > frames;
+	// Heuristic.  Search for first static after a zoom out.
 
-	transform( regions.begin(), regions.end(), std::back_inserter(frames),
-						[]( const Regions::Region &region ) {
-							return region.mean(); } );
+	int i = 1;
+	for( ; i < regions.size(); ++i ) {
+		if( regions[i-1].is( ZoomOut ) && regions[i].is( Static ) ) break;
+	}
 
-		// Go sequentially for now
-		int lastGood = baseFrame;
-		for( auto i = lastGood + 1; i < regions.size(); ++i ) {
-			OpticalFlow flow( movie );
+int origin = i;
+LOG(INFO) << "Starting with section " << origin << " from " << regions[origin].start << " to " << regions[origin].end;
 
-			const int f1 = frames[ lastGood ];
-			const int f2 = frames[ i ];
 
-			LOG(INFO) << "Comparing " << f1 << " to " << f2;
-			auto sim = flow.estimateSimilarity( f1, f2 );
+bool zoomedIn = false;
+Regions interval;
+int destination = -1;
+	for( int j = i+1; j < regions.size(); ++j ) {
+		// Look ahead for next Static
 
-			if( config.doDisplay) {
-				imshow("lastGood", movie.getFrame( f1 ) );
-				imshow("f2", movie.getFrame( f2 ) );
-
-				waitKey(0);
+			if( regions[j].is(ZoomIn) ) {
+				zoomedIn = true;
+			} else if ( regions[j].is(ZoomOut) ) {
+				zoomedIn = false;
+			} else if ( !zoomedIn ) {
+				if( regions[j].is( Static ) ) {
+					destination = j;
+					break;
+				} else {
+					interval.push_back( regions[j] );
+				}
 			}
+	}
 
-			// Heuristic tests on sim
-			//LOG(INFO) << sim;
+	if( destination < 0 ) {
+		LOG(WARNING) << "Unable to find destination";
+		exit(-1);
+	}
 
-			const float scaleThreshold = 0.02;
+LOG(INFO) << "Destination is section " << destination << " from " << regions[destination].start << " to " << regions[destination].end;
+LOG(INFO) << "Interval includes " << interval.size() << " regions:";
+for( auto r : interval) {
+	LOG(INFO) << "     " << r.start << " to " << r.end << " : " << r.typeStr();
+}
 
-			if( sim.scale > (1+scaleThreshold) || sim.scale < (1-scaleThreshold) ) {
-				LOG(INFO) << "Scale change between " << f1 << " and " << f2 << " == " << sim.scale << ", continuing";
-				continue;
-			}
+int refFrame = regions[origin].mean();
+
+LOG(INFO) << "Must bridge from " << regions[origin].end << " to " << regions[destination].start;
+
+cv::Mat originFrame(movie.getFrame( regions[origin].end )),
+        destFrame( movie.getFrame( regions[destination].start));
+
+	const int stride = 10;
+
+	Similarity cumulativeSim(1.0);
+
+	for( int frameNum = regions[origin].end; frameNum <regions[destination].start; frameNum += stride ) {
+		OpticalFlow flow( movie );
+
+		LOG(INFO) << "Stepping from " << frameNum << " to " << frameNum+stride;
+		auto sim = flow.estimateSimilarity( frameNum, frameNum+stride );
+
+		// Heuristic checks here
+
+		cumulativeSim = sim * cumulativeSim;
+
+		LOG(INFO) << "Cumulative similarity: " << cumulativeSim;
 
 
-			// Success, add edge
-			LOG(INFO) << "Adding edge between " << f1 << " and " << f2;
-			graph.addEdge( lastGood, i, sim );
+		// Align origin to current using cumulativeSim
 
-			lastGood = i;
-		}
+	}
 
+	// vector< int > frames;
+	//
+	// transform( regions.begin(), regions.end(), std::back_inserter(frames),
+	// 					[]( const Regions::Region &region ) {
+	// 						return region.mean(); } );
+	//
+	// 	// Go sequentially for now
+	// 	int lastGood = baseFrame;
+	// 	for( auto i = lastGood + 1; i < regions.size(); ++i ) {
 
-
+	//
+	// 		const int f1 = frames[ lastGood ];
+	// 		const int f2 = frames[ i ];
+	//
+	// 		LOG(INFO) << "Comparing " << f1 << " to " << f2;
+	// 		auto sim = flow.estimateSimilarity( f1, f2 );
+	//
+	// 		if( config.doDisplay) {
+	// 			imshow("lastGood", movie.getFrame( f1 ) );
+	// 			imshow("f2", movie.getFrame( f2 ) );
+	//
+	// 			waitKey(0);
+	// 		}
+	//
+	// 		// Heuristic tests on sim
+	// 		//LOG(INFO) << sim;
+	//
+	// 		const float scaleThreshold = 0.02;
+	//
+	// 		if( sim.scale > (1+scaleThreshold) || sim.scale < (1-scaleThreshold) ) {
+	// 			LOG(INFO) << "Scale change between " << f1 << " and " << f2 << " == " << sim.scale << ", continuing";
+	// 			continue;
+	// 		}
+	//
+	//
+	// 		// Success, add edge
+	// 		LOG(INFO) << "Adding edge between " << f1 << " and " << f2;
+	// 		graph.addEdge( lastGood, i, sim );
+	//
+	// 		lastGood = i;
+	// 	}
+	//
+	//
+	//
 
 
 
