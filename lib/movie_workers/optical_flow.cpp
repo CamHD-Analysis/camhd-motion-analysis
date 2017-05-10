@@ -84,7 +84,7 @@ namespace CamHDMotionTracking {
   { return "similarity"; }
 
 
-  bool OpticalFlow::calcFlow( int t1, int t2 )
+  bool OpticalFlow::calcFlow( int t1, int t2, const Similarity &hint )
   {
     if( t1 <= 0 && t2 > _movie.numFrames() ) {
       LOG(WARNING) << "Frame calculation error: t1 = " << t1 << " and t2 = " << t2;
@@ -99,8 +99,12 @@ namespace CamHDMotionTracking {
       return false;
     }
 
+    // Apply the hint
+    cv::Mat warped1;
+    cv::warpAffine( _full1, warped1, hint.affine(), _full1.size() );
+
     cv::Mat resize1, resize2;
-    cv::resize( _full1, resize1, cv::Size(), _imgScale, _imgScale );
+    cv::resize( warped1, resize1, cv::Size(), _imgScale, _imgScale );
     cv::resize( _full2, resize2, cv::Size(), _imgScale, _imgScale );
 
     // Convert to greyscale
@@ -120,6 +124,8 @@ namespace CamHDMotionTracking {
 
     // Build mask
     cv::Mat mask( buildMask( grey1  ) );
+    cv::Mat warpedMask;
+    cv::warpAffine( mask, warpedMask, hint.affine( _imgScale ), mask.size() );
 
     // Optical flow calculation
     cv::Mat flow( grey1.size(), CV_32FC2 );
@@ -129,13 +135,12 @@ namespace CamHDMotionTracking {
     // Scale flow by dt
     //flow /= (t2-t1);
 
-    //visualizeFlow( flow, f1Grey, f2Grey, f1Mask );
-
+    if( doDisplay ) visualizeFlow( flow, grey1, grey2, warpedMask );
 
     // Use optical flow to estimate transform
     // Downsample flow using linear interoplation
     cv::resize(flow, _scaledFlow, cv::Size(), _flowScale, _flowScale, INTER_LINEAR );
-    cv::resize(mask, _scaledMask, _scaledFlow.size() );
+    cv::resize(warpedMask, _scaledMask, _scaledFlow.size() );
 
     // Scale flow values as well.
     _scaledFlow *= _flowScale;
@@ -163,10 +168,10 @@ namespace CamHDMotionTracking {
     return estimateSimilarity( t1, t2 );
   }
 
-  CalculatedSimilarity OpticalFlow::estimateSimilarity( int t1, int t2 )
+  CalculatedSimilarity OpticalFlow::estimateSimilarity( int t1, int t2, const Similarity &hint )
   {
 
-    if( !calcFlow( t1, t2) ) return CalculatedSimilarity();
+    if( !calcFlow( t1, t2, hint) ) return CalculatedSimilarity();
 
     auto meanFlow = cv::mean( _scaledFlow );
 
@@ -250,10 +255,15 @@ namespace CamHDMotionTracking {
     .setToFrame( t2 )
     .setValid( true );
 
-    //      visualizeWarp( _full1, _full2, similarity, center );
-    //      waitKey(1);
+    auto finalSim = sim*hint;
 
-    return sim;
+    if( doDisplay ) {
+      double foobar[] = {finalSim.scale, finalSim.theta, finalSim.trans[0], finalSim.trans[1]};
+          visualizeWarp( _full1, _full2, foobar, center );
+          waitKey(1);
+      }
+
+    return finalSim;
   }
 
 
@@ -348,7 +358,7 @@ namespace CamHDMotionTracking {
     cv::resize( f2, roiTwo, roiTwo.size() );
 
     imshow( "composite", composite);
-    waitKey(1);
+  //  waitKey(1);
   }
 
 

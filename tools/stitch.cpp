@@ -187,10 +187,13 @@ cv::Mat originFrame(movie.getFrame( regions[origin].end )),
 
 	const int stride = 10;
 
-	Similarity cumulativeSim(1.0);
+	int lastCumulative = regions[origin].end
+;	Similarity cumulativeSim;
+	LOG(INFO) << "Cumulative similarity: " << cumulativeSim;
 
 	for( int frameNum = regions[origin].end; frameNum <regions[destination].start; frameNum += stride ) {
 		OpticalFlow flow( movie );
+		flow.doDisplay = true;
 
 		LOG(INFO) << "Stepping from " << frameNum << " to " << frameNum+stride;
 		auto sim = flow.estimateSimilarity( frameNum, frameNum+stride );
@@ -198,12 +201,20 @@ cv::Mat originFrame(movie.getFrame( regions[origin].end )),
 		// Heuristic checks here
 
 		cumulativeSim = sim * cumulativeSim;
-
+		LOG(INFO) << "Incremental similarity: " << sim;
 		LOG(INFO) << "Cumulative similarity: " << cumulativeSim;
-
 
 		// Align origin to current using cumulativeSim
 
+		// Do cumulative
+		if( (frameNum+stride - lastCumulative) > 50) {
+		LOG(INFO) << "Attempting incremental alignment from " << regions[origin].end << " to " << frameNum+stride;
+		auto newCumulativeSim = flow.estimateSimilarity( regions[origin].end, frameNum+stride, cumulativeSim );
+
+		LOG(INFO) << "New cumulative = " << newCumulativeSim;
+		cumulativeSim = newCumulativeSim;
+		lastCumulative = frameNum+stride;
+	}
 	}
 
 	// vector< int > frames;

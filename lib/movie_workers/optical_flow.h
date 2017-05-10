@@ -30,10 +30,10 @@ namespace CamHDMotionTracking {
 
     virtual const string jsonName();
 
-    virtual bool calcFlow( int t1, int t2 );
+    virtual bool calcFlow( int t1, int t2, const Similarity &hint = Similarity() );
 
     virtual CalculatedSimilarity estimateVelocity( int f );
-    virtual CalculatedSimilarity estimateSimilarity( int f, int t );
+    virtual CalculatedSimilarity estimateSimilarity( int f, int t, const Similarity &hint = Similarity() );
 
     virtual nlohmann::json asJson( int f );
 

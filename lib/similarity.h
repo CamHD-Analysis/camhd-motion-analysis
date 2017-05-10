@@ -1,5 +1,7 @@
 #pragma once
 
+#include <ostream>
+
 #include <opencv2/core/core.hpp>
 
 #include "json.hpp"
@@ -19,10 +21,12 @@ namespace CamHDMotionTracking {
     {;}
 
     double scale, theta;
-    Vec2d trans, center;
+    Vec2d trans;
 
     Similarity &operator=( const Similarity &other );
     Similarity operator*( const Similarity &other );
+
+    cv::Matx23d affine( float imgScale = 1.0 ) const;
 
   };
 
@@ -53,7 +57,10 @@ namespace CamHDMotionTracking {
     CalculatedSimilarity &setToFrame( int t )
     { toFrame = t; return *this; }
 
+    // As above for Similarity but retains metadata
+    CalculatedSimilarity operator*( const Similarity &other );
 
+    Vec2d center;
     float imgScale, flowScale;
     int fromFrame, toFrame;
     bool valid;
@@ -76,7 +83,7 @@ namespace CamHDMotionTracking {
 
   }
 
-  inline operator<<( ostream &out, const Similarity &sim ) {
+  inline void operator<<( std::ostream &out, const Similarity &sim ) {
     out << cv::Vec4d( sim.scale, sim.theta, sim.trans[0], sim.trans[1]);
   }
 
