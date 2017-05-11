@@ -39,18 +39,24 @@ buildTypes.each { |build_type|
 }
 
 
-DockerTasks.new
+#DockerTasks.new
 
 namespace :docker do
   namespace :deploy do
     task :build do
       chdir "docker/deploy" do
-        sh "docker build --no-cache --tag camhd_motion_analysis:latest ."
+        sh "docker build --tag camhd_motion_analysis:latest --tag camhd_motion_analysis:#{`git rev-parse --short HEAD`.chomp} ."
       end
     end
 
     task :test do
-      sh "docker run camhd_motion_analysis:latest -- --help"
+      sh "docker run camhd_motion_analysis:latest --help"
+    end
+
+    task :push_gcr => :test do
+      registry_url = "us.gcr.io/camhd-image-statistics/camhd_motion_analysis"
+      sh "docker tag camhd_motion_analysis:latest #{registry_url}"
+      sh "gcloud docker -- push #{registry_url}"
     end
   end
 end

@@ -13,6 +13,7 @@ RUN sed -i s/std::string\(\\\([a-zA-Z\ \\\"]*\\\)\)/\\\1/ /usr/include/curlpp/Op
 ## Updated pip
 RUN pip install -U conan
 
+WORKDIR /root
 RUN git clone https://github.com/CamHD-Analysis/camhd_motion_analysis.git
 
 WORKDIR camhd_motion_analysis
@@ -24,4 +25,6 @@ RUN conan config set settings_defaults.compiler.libcxx=libstdc++11
 ENV VERBOSE 1
 RUN rake release:build
 
-ENTRYPOINT ["/root/camhd_motion_analysis/build-Release/bin/test_frame"]
+VOLUME "/data"
+
+ENTRYPOINT ["/root/camhd_motion_analysis/build-Release/bin/frame_stats"]
