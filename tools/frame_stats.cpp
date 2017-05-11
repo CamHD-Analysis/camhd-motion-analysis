@@ -59,7 +59,7 @@ public:
 			try {
 				TCLAP::CmdLine cmd("Command description message", ' ', "0.0");
 
-				TCLAP::UnlabeledValueArg<std::string> pathsArg("path","Path",true,"","Path",cmd);
+				TCLAP::UnlabeledValueArg<std::string> pathsArg("mov-path","path",true,"","path",cmd);
 
 				TCLAP::ValueArg<std::string> jsonOutArg("o", "out", "File for JSON output (leave blank for stdout)", false,jsonOut.string(), "filename", cmd );
 				TCLAP::ValueArg<std::string> hostArg("","host","URL to host",false,DefaultCacheURL.string(),"url",cmd);
@@ -70,6 +70,9 @@ public:
 				TCLAP::ValueArg<int> stopAtArg("","stop-at","",false,stopAt,"frame number",cmd);
 				TCLAP::ValueArg<int> strideArg("","stride","Number of frames for stride",false,stride,"num of frames",cmd);
 
+				TCLAP::ValueArg<int> frameArg("","frame","",false,0,"frame number", cmd);
+
+
 				TCLAP::SwitchArg gpuArg("g","gpu","Use GPU",cmd,false);
 				TCLAP::SwitchArg displayArg("x","display","Show results in window", cmd, false);
 
@@ -79,16 +82,22 @@ public:
 				// Args back to
 				cacheURL = hostArg.getValue();
 
-				startAt = startAtArg.getValue();
-				startAtSet = startAtArg.isSet();
-
 				parallelismSet = parallelismArg.isSet();
 				parallelism = parallelismArg.getValue();
 
-				stopAt = stopAtArg.getValue();
-				stopAtSet = stopAtArg.isSet();
+				if( frameArg.isSet() ) {
+					startAt = frameArg.getValue();
+					stopAt = startAt+1;
+					stride = 0;
+				} else {
+					startAt = startAtArg.getValue();
+					startAtSet = startAtArg.isSet();
 
-				stride = strideArg.getValue();
+					stopAt = stopAtArg.getValue();
+					stopAtSet = stopAtArg.isSet();
+
+					stride = strideArg.getValue();
+				}
 
 				jsonOut = jsonOutArg.getValue();
 				jsonOutSet = jsonOutArg.isSet();
