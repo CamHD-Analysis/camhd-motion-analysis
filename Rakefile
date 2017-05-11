@@ -41,6 +41,20 @@ buildTypes.each { |build_type|
 
 DockerTasks.new
 
+namespace :docker do
+  namespace :deploy do
+    task :build do
+      chdir "docker/deploy" do
+        sh "docker build --no-cache --tag camhd_motion_analysis:latest ."
+      end
+    end
+
+    task :test do
+      sh "docker run camhd_motion_analysis:latest -- --help"
+    end
+  end
+end
+
 task :stitch do
   sh "build-Debug/bin/stitch --display --regions /home/aaron/workspace/camhd_analysis/CamHD_motion_metadata/RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z_optical_flow_regions.json"
 end
