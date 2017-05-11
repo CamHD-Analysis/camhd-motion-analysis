@@ -7,9 +7,11 @@ task :default => "debug:test"
 @conan_opts = {  build_parallel: 'False' }
 @conan_settings = {}
 @conan_scopes = { build_tests: 'True' }
-@conan_build = "missing"
+@conan_build = "outdated"
 load 'config.rb' if FileTest.readable? 'config.rb'
 
+
+## TODO. Add task to check for git submodules...
 
 buildTypes =  ['Debug','Release']
 buildTypes.each { |build_type|
@@ -35,6 +37,9 @@ buildTypes.each { |build_type|
     end
   end
 }
+
+
+DockerTasks.new
 
 task :stitch do
   sh "build-Debug/bin/stitch --display --regions /home/aaron/workspace/camhd_analysis/CamHD_motion_metadata/RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z_optical_flow_regions.json"
