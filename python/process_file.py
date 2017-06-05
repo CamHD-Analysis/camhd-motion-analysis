@@ -20,6 +20,22 @@ import dask.threaded
 #
 DEFAULT_STRIDE = 10
 
+def process_file( path, output_path, num_threads=1, start =-1, stop =-1, stride = DEFAULT_STRIDE ):
+
+    frames = range( 5000, 5010, stride )
+
+    if( args.threads > 1 ):
+        values = [delayed(frame_stats)(mov_path,f) for f in frames]
+        results = compute(*values, get=dask.threaded.get)
+
+        joutput = results[0]
+        for i in range(1, len(results)):
+            joutput["frame_stats"].extend(results[i]["frame_stats"])
+    else:
+        joutput = [ma.frame_stats(mov_path, f) for f in frames]
+
+    return joutput
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process a file using frame_stats.')
@@ -37,18 +53,6 @@ if __name__ == "__main__":
 
     mov_path = '/RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z.mov'
 
-    frames = range( 5000, 5010, args.stride )
-
-    if( args.threads > 1 ):
-        values = [delayed(frame_stats)(mov_path,f) for f in frames]
-        results = compute(*values, get=dask.threaded.get)
-
-        joutput = results[0]
-        for i in range(1, len(results)):
-            joutput["frame_stats"].extend(results[i]["frame_stats"])
-    else:
-        joutput = [ma.frame_stats(mov_path, f) for f in frames]
-
 
     data_filename = os.path.basename(mov_path)
     data_filename = os.path.splitext( data_filename )[0] + "_optical_flow.json"
@@ -56,6 +60,11 @@ if __name__ == "__main__":
 
     outfile = metadata_repo + "/" + data_filename
     print("Saving results to %s" % outfile)
+
+
+    joutput = process_file( mov_path, outfile )
+
+
 
     with open(outfile,'w') as f:
         json.dump(joutput, f, indent=2)
