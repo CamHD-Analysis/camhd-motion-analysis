@@ -1,17 +1,6 @@
 # This is a comment
-FROM amarburg/lsdslam-dev-host:conan-latest
+FROM camhd_motion_analysis_base:latest
 MAINTAINER Aaron Marburg <amarburg@apl.washington.edu>
-
-RUN apt-get install --no-install-recommends --yes libcurlpp-dev libcurl4-openssl-dev libceres-dev
-
-## Resolve a bug in the current xenial package for Ceres
-RUN touch /usr/include/ceres/internal/config.h
-
-## Resolve a bug in the current xenial package for curlpp
-RUN sed -i s/std::string\(\\\([a-zA-Z\ \\\"]*\\\)\)/\\\1/ /usr/include/curlpp/Option.inl
-
-## Updated pip
-RUN pip install -U conan
 
 WORKDIR /root
 RUN git clone https://github.com/CamHD-Analysis/camhd_motion_analysis.git

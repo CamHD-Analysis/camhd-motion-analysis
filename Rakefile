@@ -43,9 +43,13 @@ buildTypes.each { |build_type|
 
 namespace :docker do
   namespace :deploy do
-    task :build do
+    task :base do
+        sh "docker build --tag camhd_motion_analysis_base:latest --tag camhd_motion_analysis_base:#{`git rev-parse --short HEAD`.chomp} docker/base"
+    end
+
+    task :build => :base do
       chdir "docker/deploy" do
-        sh "docker build --tag camhd_motion_analysis:latest --tag camhd_motion_analysis:#{`git rev-parse --short HEAD`.chomp} ."
+        sh "docker build --tag camhd_motion_analysis:latest --tag camhd_motion_analysis:#{`git rev-parse --short HEAD`.chomp} docker-deploy"
       end
     end
 
