@@ -9,6 +9,7 @@ import json
 # import paths
 
 import camhd_motion_analysis as ma
+import pycamhd.lazycache as pycamhd
 
 from dask import compute, delayed
 import dask.threaded
@@ -20,11 +21,18 @@ import dask.threaded
 #
 DEFAULT_STRIDE = 10
 
-def process_file( path, output_path, num_threads=1, start =-1, stop =-1, stride = DEFAULT_STRIDE ):
+def process_file( mov_path, output_path, num_threads=1, start = 1, stop =-1, stride = DEFAULT_STRIDE ):
 
-    frames = range( 5000, 5010, stride )
+    if stop < 0:
+        repo = pycamhd.lazycache()
+        movie_info = repo.get_metadata( url=mov_path )
+        stop = movie_info['NumFrames']
 
-    if( args.threads > 1 ):
+
+    print("Processing %s from %d to %d by %d in %d threads" % (mov_path, start, stop, stride, num_threads))
+    frames = range( start, stop, stride )
+
+    if( num_threads > 1 ):
         values = [delayed(frame_stats)(mov_path,f) for f in frames]
         results = compute(*values, get=dask.threaded.get)
 
@@ -33,6 +41,8 @@ def process_file( path, output_path, num_threads=1, start =-1, stop =-1, stride 
             joutput["frame_stats"].extend(results[i]["frame_stats"])
     else:
         joutput = [ma.frame_stats(mov_path, f) for f in frames]
+
+    print(joutput)
 
     return joutput
 
@@ -62,9 +72,7 @@ if __name__ == "__main__":
     print("Saving results to %s" % outfile)
 
 
-    joutput = process_file( mov_path, outfile )
-
-
+    joutput = process_file( mov_path, outfile, num_threads = args.threads )
 
     with open(outfile,'w') as f:
         json.dump(joutput, f, indent=2)

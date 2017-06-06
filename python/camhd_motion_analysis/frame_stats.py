@@ -5,7 +5,7 @@ import json
 import pathlib
 
 def frame_stats( path, start, end = -1, stride = 10,
-                frame_stats_path = str(pathlib.Path(__file__).parents[2] / "build-Debug/bin/frame_stats") ):
+                frame_stats_path = str(pathlib.Path(__file__).parents[2] / "build-Release/bin/frame_stats") ):
     if end < 0: end = start+1
 
     print(frame_stats_path)
@@ -19,14 +19,16 @@ def frame_stats( path, start, end = -1, stride = 10,
                                                 path ],
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE,
-                                 encoding='utf8' )
+                                encoding='utf8' )
 
         try:
             # Read the JSON from stdout
             results = json.load( t )
 
-        #TODO: Check output quality here
+            #TODO: Check output quality here
 
             return results
         except json.JSONDecodeError:
+            print("Stdout: ", procout.stdout)
+            print("Stderr: ", procout.stderr)
             return procout.stdout

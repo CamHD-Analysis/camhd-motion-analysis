@@ -2,7 +2,7 @@
 $:.unshift File.dirname(__FILE__) + "/tasks"
 require 'docker'
 
-task :default => "debug:test"
+task :default => "release:test"
 
 @conan_opts = {  build_parallel: 'False' }
 @conan_settings = {}
@@ -64,6 +64,16 @@ namespace :docker do
     end
   end
 end
+
+
+namespace :rq do
+  task :worker do
+    ## Run docker at top level of repo, but reference docker/rq_worker/Dockerfile
+    ## This lets us ADD the whole repo
+    sh "docker build --tag camhd_motion_analysis_rq_worker:latest --tag camhd_motion_analysis_base_rq_worker:#{`git rev-parse --short HEAD`.chomp} --file docker/rq_worker/Dockerfile ."
+  end
+end
+
 
 task :stitch do
   sh "build-Debug/bin/stitch --display --regions /home/aaron/workspace/camhd_analysis/CamHD_motion_metadata/RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z_optical_flow_regions.json"

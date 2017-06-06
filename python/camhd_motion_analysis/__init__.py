@@ -3,6 +3,7 @@
 #__all__ = ["frame_stats"]
 
 from .frame_stats import *
+from .process_file import *
 
 __version__ = '0.1.0'
 
