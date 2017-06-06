@@ -4,11 +4,11 @@ import subprocess
 import json
 import pathlib
 
-def frame_stats( path, start, end = -1, stride = 10,
+def frame_stats( path, start,
+                end = -1,
+                stride = 10,
                 frame_stats_path = str(pathlib.Path(__file__).parents[2] / "build-Release/bin/frame_stats") ):
     if end < 0: end = start+1
-
-    print(frame_stats_path)
 
     with tempfile.NamedTemporaryFile() as t:
         procout = subprocess.run( [frame_stats_path,
