@@ -31,7 +31,7 @@ parser.add_argument('--output-file', dest='outfile', metavar='o', nargs='?', def
 parser.add_argument('--output-dir', dest='outdir', metavar='o', nargs='?', default=".",
                     help='File for output')
 
-parser.add_argument('--dry-run', dest='dryrun', action='count', help='Dry run')
+parser.add_argument('--dry-run', dest='dryrun', action='store_true', help='Dry run')
 
 parser.add_argument('--redis-url', dest='redis', default="redis://localhost:6379/1",
                     help='URL to Redis server')
@@ -76,19 +76,18 @@ for f in args.input:
 ## Generate infile->outfile pairs:
 if len(infiles) == 0:
     exit
-elif len(infiles) == 1:
-    filepairs = [ [infiles[0], args.outfile] ]
+# elif len(infiles) == 1:
+#     filepairs = [ [infiles[0], args.outfile] ]
 else:
     filepairs = [[f,(args.outdir + f)] for f in infiles]
 
 
 
 q = Queue(connection=Redis.from_url(args.redis))
-
 for f in filepairs:
     print("Processing %s, Saving results to %s" % (f[0], f[1]) )
 
-    if args.dryrun > 0:
+    if args.dryrun == False:
         job = q.enqueue( ma.process_file,
                         f[0],
                     f[1],
