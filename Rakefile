@@ -70,7 +70,7 @@ namespace :rq do
   task :worker do
     ## Run docker at top level of repo, but reference docker/rq_worker/Dockerfile
     ## This lets us ADD the whole repo
-    sh "docker build --tag camhd_motion_analysis_rq_worker:latest --tag camhd_motion_analysis_base_rq_worker:#{`git rev-parse --short HEAD`.chomp} --file docker/rq_worker/Dockerfile ."
+    sh "docker build --tag camhd_motion_analysis_rq_worker:latest --tag camhd_motion_analysis_rq_worker:#{`git rev-parse --short HEAD`.chomp} --file docker/rq_worker/Dockerfile ."
   end
 end
 

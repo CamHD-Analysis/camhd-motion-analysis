@@ -3,17 +3,21 @@ FROM ubuntu:yakkety
 MAINTAINER Aaron Marburg <amarburg@apl.washington.edu>
 
 RUN apt-get update && apt-get install --no-install-recommends --yes libcurlpp-dev libcurl4-openssl-dev \
-          libopencv-dev rake g++ cmake python-pip
+          libopencv-dev rake g++ cmake python3-pip python-setuptools git \
+          libboost-filesystem-dev libeigen3-dev libceres-dev
 
-## TODO.   Consolidate with above when you have time to do a massive
-RUN apt-get install --no-install-recommends --yes python-setuptools git
 
-RUN pip install --upgrade pip
-RUN pip install wheel
-RUN pip install conan rq pillow
+RUN pip3 install setuptools
+RUN pip3 install --upgrade pip
+RUN pip3 install wheel
+RUN pip3 install conan rq pillow redis
 
-## TODO.   Consolidate with above when you have time to do a massive
-RUN apt-get install --no-install-recommends --yes libboost-filesystem-dev libeigen3-dev
+
+## Resolve a bug in the current xenial package for Ceres
+RUN touch /usr/include/ceres/internal/config.h
+
+## Resolve a bug in the current xenial package for curlpp
+RUN sed -i s/std::string\(\\\([a-zA-Z\ \\\"]*\\\)\)/\\\1/ /usr/include/curlpp/Option.inl
 
 ADD . /code
 WORKDIR /code
@@ -26,5 +30,8 @@ RUN conan config set settings_defaults.compiler.libcxx=libstdc++11
 ENV BUILD_DIR docker-Release
 ENV VERBOSE 1
 RUN rake release:build
+RUN cd $BUILD_DIR && make clean
 
-ENTRYPOINT ["python3 python/rq_worker.py"]
+WORKDIR /code/python
+VOLUME /output
+ENTRYPOINT ["./rq_worker.py"]
