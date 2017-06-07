@@ -61,10 +61,6 @@ def iterate_path( path ):
 
     return outfiles
 
-
-
-filepairs = []
-
 infiles = []
 for f in args.input:
     if re.search('\.mov$', f ):
@@ -76,21 +72,19 @@ for f in args.input:
 ## Generate infile->outfile pairs:
 if len(infiles) == 0:
     exit
-# elif len(infiles) == 1:
-#     filepairs = [ [infiles[0], args.outfile] ]
-else:
-    filepairs = [[f,(args.outdir + f)] for f in infiles]
 
+#filepairs = [[f,(args.outdir + f)] for f in infiles]
 
 
 q = Queue(connection=Redis.from_url(args.redis))
-for f in filepairs:
-    print("Processing %s, Saving results to %s" % (f[0], f[1]) )
+for infile in infiles:
+    outfile = os.path.splitext(args.outdir + infile)[0] + "_optical_flow.json"
+    print("Processing %s, Saving results to %s" % (infile, outfile) )
 
     if args.dryrun == False:
         job = q.enqueue( ma.process_file,
-                        f[0],
-                    f[1],
+                        infile,
+                    outfile,
                     num_threads=args.threads,
                     stride=args.stride,
                         timeout='2h',

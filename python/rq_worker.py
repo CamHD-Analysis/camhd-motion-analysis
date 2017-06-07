@@ -14,6 +14,8 @@ from rq import Connection, Worker
 
 redis_host = os.environ.get("REDIS_URL", "redis://localhost:6379/1")
 
+print("Connecting to Redis host %s" % redis_host )
+
 conn = Redis.from_url(redis_host)
 with Connection(conn):
     qs = sys.argv[1:] or ['default']

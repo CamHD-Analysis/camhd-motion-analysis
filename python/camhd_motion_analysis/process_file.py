@@ -28,6 +28,9 @@ def process_file( mov_path, output_path, num_threads=1, start = 1, stop =-1, str
         movie_info = repo.get_metadata( url=mov_path )
         stop = movie_info['NumFrames']
 
+    if os.path.isfile( output_path ):
+        print("File %s exists, skipping", output_path )
+        return
 
     print("Processing %s from %d to %d by %d in %d threads" % (mov_path, start, stop, stride, num_threads))
     frames = range( start, stop, stride )

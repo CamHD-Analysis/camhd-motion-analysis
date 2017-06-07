@@ -7,7 +7,7 @@ import pathlib
 def frame_stats( path, start,
                 end = -1,
                 stride = 10,
-                frame_stats_path = str(pathlib.Path(__file__).parents[2] / "build-Release/bin/frame_stats") ):
+                frame_stats_path = "frame_stats" ):
     if end < 0: end = start+1
 
     with tempfile.NamedTemporaryFile() as t:
