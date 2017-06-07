@@ -1,0 +1,57 @@
+
+
+namespace :template do
+  image_name = "worker-template"
+
+  task :create do
+  #sh "gcloud compute instances delete #{image_name}"  ## check if exists
+  sh "gcloud compute instances create #{image_name} \
+              --machine-type n1-standard-4 \
+              --image-family coreos-stable \
+              --image-project coreos-cloud \
+              --boot-disk-size 20GB \
+              --preemptible \
+              --metadata-from-file user-data=worker-cloud-init"
+
+  end
+
+  task :image do
+
+    sh "gcloud compute instances delete --keep-disks=boot #{image_name}"
+
+    dated_image_name = image_name + Time.now.strftime("-%d%m%y-%H%M%S")
+
+    sh "gcloud compute disk"
+
+    sh "gcloud compute images create #{dated_image_name} \
+              --source-disk #{image_name} \
+              --source-disk-zone us-central1-a \
+              --family worker-templates"
+
+  end
+
+  task :instance do
+    sh "gcloud compute instance-templates create worker-template \
+              --machine-type n1-standard-1 --preemptible \
+              --image-family worker-templates \
+              --boot-disk-size 20GB"
+
+  end
+
+end
+
+
+
+
+namespace :group do
+
+task :create do
+  sh "gcloud compute instance-groups managed create worker-swarm \
+        --base-instance-name worker \
+        --size 2 \
+        --template \
+        --zone us-central1-a"
+end
+
+
+end
