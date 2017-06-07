@@ -87,5 +87,7 @@ for infile in infiles:
                     outfile,
                     num_threads=args.threads,
                     stride=args.stride,
+                    start=5000,
+                    stop=5500,
                         timeout='2h',
                         ttl=3600*24 )

@@ -14,11 +14,6 @@ import pycamhd.lazycache as pycamhd
 from dask import compute, delayed
 import dask.threaded
 
-
-#
-# metadata_repo = "/tmp"
-# data_filename = "/CAMHDA301-20160101T000000Z_optical_flow.json"
-#
 DEFAULT_STRIDE = 10
 
 def process_file( mov_path, output_path, num_threads=1, start = 1, stop =-1, stride = DEFAULT_STRIDE ):
@@ -29,7 +24,7 @@ def process_file( mov_path, output_path, num_threads=1, start = 1, stop =-1, str
         stop = movie_info['NumFrames']
 
     if os.path.isfile( output_path ):
-        print("File %s exists, skipping", output_path )
+        print("File %s exists, skipping" % output_path )
         return
 
     print("Processing %s from %d to %d by %d in %d threads" % (mov_path, start, stop, stride, num_threads))
@@ -45,6 +40,9 @@ def process_file( mov_path, output_path, num_threads=1, start = 1, stop =-1, str
     else:
         joutput = [ma.frame_stats(mov_path, f) for f in frames]
 
+    os.makedirs( os.path.dirname( output_path ))
+
+    print("Saving results to %s" % output_path )
 
     with open(output_path,'w') as f:
         json.dump(joutput, f, indent=2)

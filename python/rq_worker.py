@@ -22,7 +22,3 @@ with Connection(conn):
 
     w = Worker(qs)
     w.work()
-
-
-# if __name__ == "__main__":
-#     print("Hello from rq_worker.py")

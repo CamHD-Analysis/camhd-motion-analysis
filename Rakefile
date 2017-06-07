@@ -93,7 +93,7 @@ namespace :rq do
   end
 
   task :launch_test do
-    sh "docker run --env REDIS_URL=\"redis://ursine:6379/1\" --volume /output/CamHD_motion_metadata:/home/aaron/canine/camhd_analysis/CamHD_motion_metadata/ camhd_motion_analysis_rq_worker:test"
+    sh "docker run --env REDIS_URL=\"redis://ursine:6379/1\" --volume /home/aaron/canine/camhd_analysis/CamHD_motion_metadata:/output/CamHD_motion_metadata camhd_motion_analysis_rq_worker:test"
   end
 
   task :test do
