@@ -18,10 +18,14 @@ DEFAULT_STRIDE = 10
 
 def process_file( mov_path, output_path, num_threads=1, start = 1, stop =-1, stride = DEFAULT_STRIDE ):
 
+    print("foo")
+
     if stop < 0:
         repo = pycamhd.lazycache()
         movie_info = repo.get_metadata( url=mov_path )
         stop = movie_info['NumFrames']
+
+    print("Processing %s" % mov_path)
 
     if os.path.isfile( output_path ):
         print("File %s exists, skipping" % output_path )
@@ -40,7 +44,7 @@ def process_file( mov_path, output_path, num_threads=1, start = 1, stop =-1, str
     else:
         joutput = [ma.frame_stats(mov_path, f) for f in frames]
 
-    os.makedirs( os.path.dirname( output_path ))
+    # os.makedirs( os.path.dirname( output_path ))
 
     print("Saving results to %s" % output_path )
 

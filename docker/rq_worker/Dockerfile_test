@@ -16,6 +16,6 @@ RUN rake release:build
 
 WORKDIR docker-Release
 RUN make install
-RUN ldconfig   ## Wierd that i need to run this...
+RUN ldconfig   ## Weird that i need to run this...
 
 ENTRYPOINT ["/code/camhd_motion_analysis/python/rq_worker.py"]

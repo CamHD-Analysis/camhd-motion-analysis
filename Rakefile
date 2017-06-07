@@ -75,12 +75,12 @@ namespace :rq do
 
   task :worker => :base_image do
     chdir "docker/rq_worker/" do
-    sh "docker build --tag camhd_motion_analysis_rq_worker:latest --tag camhd_motion_analysis_rq_worker:#{`git rev-parse --short HEAD`.chomp} --file Dockerfile_pristine ."
+    sh "docker build --no-cache --tag camhd_motion_analysis_rq_worker:latest --tag camhd_motion_analysis_rq_worker:#{`git rev-parse --short HEAD`.chomp} --file Dockerfile_pristine ."
   end
   end
 
   task :push => :worker do
-    sh "docker push camhd_motion_analysis_rq_worker:latest"
+    sh "docker push amarburg/camhd_motion_analysis_rq_worker:latest"
   end
 
   task :worker_test  => :base_image do
@@ -98,7 +98,7 @@ namespace :rq do
 
   task :test do
     chdir "python" do
-      sh "python3 ./rq_client.py --redis \"redis://ursine:6379/1\" --threads 16 --output-dir /output/CamHD_motion_metadata /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z.mov"
+      sh "python3 ./rq_client.py --redis \"redis://ursine:6379/1\" --threads 16 --output-dir /output/CamHD_motion_metadata /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T210000Z.mov"
     end
   end
 end
