@@ -7,7 +7,7 @@ include_directories(
 link_directories( ${CONAN_LIBRARY_DIR} )
 
 set( TOOLS_LIBRARIES
-  ${CAMHD_LIBS}
+  camhd
   ${COMMON_LIBRARIES}
   )
 
@@ -41,4 +41,9 @@ target_link_libraries( frame_stats
 add_executable(stitch stitch.cpp )
 target_link_libraries( stitch
   ${TOOLS_LIBRARIES}
+ )
+
+
+ install(TARGETS frame_stats
+ 	RUNTIME DESTINATION bin
  )

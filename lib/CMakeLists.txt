@@ -24,8 +24,7 @@ add_library( camhd SHARED ${libcamhd_SRCS} )
 
 target_link_libraries( camhd ${COMMON_LIBRARIES} )
 
-set( CAMHD_LIBS camhd CACHE INTERNAL "" )
 
-# target_link_libraries( camhd
-#   ${COMMON_LIBRARIES}
-# )
+install(TARGETS camhd 
+	LIBRARY DESTINATION lib
+)

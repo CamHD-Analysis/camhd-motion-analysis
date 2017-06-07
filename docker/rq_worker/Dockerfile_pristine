@@ -1,0 +1,32 @@
+#
+FROM camhd_motion_analysis_rq_worker_base:latest
+MAINTAINER Aaron Marburg <amarburg@apl.washington.edu>
+
+WORKDIR /code
+RUN git clone https://github.com/CamHD-Analysis/camhd_motion_analysis.git
+
+WORKDIR /code/camhd_motion_analysis
+
+RUN git submodule init && git submodule update
+
+## Initial conan configuration
+RUN conan config set settings_defaults.compiler.libcxx=libstdc++11
+
+ENV BUILD_DIR docker-Release
+ENV VERBOSE 1
+
+RUN rake release:build
+
+WORKDIR docker-Release
+RUN make install && make clean
+RUN ldconfig
+
+## Try to shrink the image
+RUN apt-mark manual libopencv-core2.4v5 libopencv-imgproc2.4v5 \
+                    libopencv-gpu2.4v5 libopencv-video2.4v5 \
+                    libopencv-highgui2.4-deb0 libopencv-features2d2.4v5
+RUN dpkg --remove libopencv-dev g++ cmake
+RUN apt-get autoremove --yes
+
+
+ENTRYPOINT ["/code/camhd_motion_analysis/python/rq_worker.py"]

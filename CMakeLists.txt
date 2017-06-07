@@ -6,6 +6,8 @@ set(CMAKE_PREFIX_PATH /usr)
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
 
+SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
 ## Include Find*.cmake files provided with project.
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
@@ -45,7 +47,7 @@ set( CAMHD_MOTRACK_INCLUDE_DIRS
   ${OpenCV_INCLUDE_DIRS}
 	${CURLPP_INCLUDE_DIRS}
 	${CERES_INCLUDE_DIRS}
-${CMAKE_SOURCE_DIR}/thirdparty/json/src )
+  ${CMAKE_SOURCE_DIR}/thirdparty/json/src )
 include_directories( ${CAMHD_MOTRACK_INCLUDE_DIRS} )
 
 set( COMMON_LIBRARIES

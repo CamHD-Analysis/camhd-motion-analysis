@@ -67,10 +67,39 @@ end
 
 
 namespace :rq do
-  task :worker do
-    ## Run docker at top level of repo, but reference docker/rq_worker/Dockerfile
-    ## This lets us ADD the whole repo
-    sh "docker build --tag camhd_motion_analysis_rq_worker:latest --tag camhd_motion_analysis_base_rq_worker:#{`git rev-parse --short HEAD`.chomp} --file docker/rq_worker/Dockerfile ."
+  task :base_image do
+      chdir "docker/rq_worker/" do
+      sh "docker build --tag camhd_motion_analysis_rq_worker_base:latest --tag camhd_motion_analysis_rq_worker_base:#{`git rev-parse --short HEAD`.chomp} --file Dockerfile_base ."
+    end
+  end
+
+  task :worker => :base_image do
+    chdir "docker/rq_worker/" do
+    sh "docker build --no-cache --tag camhd_motion_analysis_rq_worker:latest --tag camhd_motion_analysis_rq_worker:#{`git rev-parse --short HEAD`.chomp} --file Dockerfile_pristine ."
+  end
+  end
+
+  task :push => :worker do
+    sh "docker push amarburg/camhd_motion_analysis_rq_worker:latest"
+  end
+
+  task :worker_test  => :base_image do
+    ## To include the current code base, these needs to run at the top level
+    sh "docker build --tag camhd_motion_analysis_rq_worker:test --file docker/rq_worker/Dockerfile_test ."
+  end
+
+  task :launch do
+    sh "docker run --detach --env REDIS_URL=\"redis://ursine:6379/1\" --volume /output/CamHD_motion_metadata:/home/aaron/canine/camhd_analysis/CamHD_motion_metadata/ camhd_motion_analysis_rq_worker:latest"
+  end
+
+  task :launch_test do
+    sh "docker run --env REDIS_URL=\"redis://ursine:6379/1\" --volume /home/aaron/canine/camhd_analysis/CamHD_motion_metadata:/output/CamHD_motion_metadata camhd_motion_analysis_rq_worker:test"
+  end
+
+  task :test do
+    chdir "python" do
+      sh "python3 ./rq_client.py --redis \"redis://ursine:6379/1\" --threads 16 --output-dir /output/CamHD_motion_metadata /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T210000Z.mov"
+    end
   end
 end
 
