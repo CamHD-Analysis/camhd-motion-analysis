@@ -28,7 +28,7 @@ parser.add_argument('--stride', metavar='s', type=int, nargs='?', default=DEFAUL
 parser.add_argument('--output-file', dest='outfile', metavar='o', nargs='?', default="output.json",
                     help='File for output')
 
-parser.add_argument('--output-dir', dest='outdir', metavar='o', nargs='?', default=".",
+parser.add_argument('--output-dir', dest='outdir', metavar='o', nargs='?', default="/output/CamHD_motion_metadata",
                     help='File for output')
 
 parser.add_argument('--dry-run', dest='dryrun', action='store_true', help='Dry run')
