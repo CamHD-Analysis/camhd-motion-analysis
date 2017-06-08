@@ -33,7 +33,7 @@ parser.add_argument('--output-dir', dest='outdir', metavar='o', nargs='?', defau
 
 parser.add_argument('--dry-run', dest='dryrun', action='store_true', help='Dry run')
 
-parser.add_argument('--redis-url', dest='redis', default="redis://localhost:6379/1",
+parser.add_argument('--redis-url', dest='redis', default=os.environ.get("RQ_REDIS_URL", "redis://localhost:6379/"),
                     help='URL to Redis server')
 
 args = parser.parse_args()
@@ -84,10 +84,8 @@ for infile in infiles:
     if args.dryrun == False:
         job = q.enqueue( ma.process_file,
                         infile,
-                    outfile,
-                    num_threads=args.threads,
-                    stride=args.stride,
-                    start=5000,
-                    stop=5500,
+                        outfile,
+                        num_threads=args.threads,
+                        stride=args.stride,
                         timeout='2h',
                         ttl=3600*24 )

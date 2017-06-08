@@ -1,0 +1,9 @@
+## The test docker image builds at the top level of the repo
+## to shrink the build context, exclude some files...
+*.json
+analysis/
+build*/
+docker/
+
+thirdparty/json/benchmarks/
+thirdparty/json/test/

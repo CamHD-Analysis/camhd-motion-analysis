@@ -12,9 +12,9 @@ from rq import Connection, Worker
 # Preload libraries
 # import camhd_motion_analysis as ma
 
-redis_host = os.environ.get("REDIS_URL", "redis://localhost:6379/1")
+redis_host = os.environ.get("RQ_REDIS_URL", "redis://localhost:6379/")
 
-print("Connecting to Redis host %s" % redis_host )
+sys.stderr.write("Connecting to Redis host %s" % redis_host )
 
 conn = Redis.from_url(redis_host)
 with Connection(conn):

@@ -22,11 +22,11 @@ RUN make install && make clean
 RUN ldconfig
 
 ## Try to shrink the image
-RUN apt-mark manual libopencv-core2.4v5 libopencv-imgproc2.4v5 \
-                    libopencv-gpu2.4v5 libopencv-video2.4v5 \
-                    libopencv-highgui2.4-deb0 libopencv-features2d2.4v5
-RUN dpkg --remove libopencv-dev g++ cmake
-RUN apt-get autoremove --yes
+#RUN apt-mark manual libopencv-core2.4v5 libopencv-imgproc2.4v5 \
+#                    libopencv-gpu2.4v5 libopencv-video2.4v5 \
+#                    libopencv-highgui2.4-deb0 libopencv-features2d2.4v5
+#RUN dpkg --remove libopencv-dev g++ cmake
+#RUN apt-get autoremove --yes
 
 
 ENTRYPOINT ["/code/camhd_motion_analysis/python/rq_worker.py"]

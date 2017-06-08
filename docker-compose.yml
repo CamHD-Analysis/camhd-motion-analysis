@@ -1,0 +1,14 @@
+version: '3'
+services:
+  worker1:
+    image: amarburg/camhd_motion_analysis_rq_worker:latest
+    environment:
+      - RQ_REDIS_URL
+    volumes:
+     - ${METADATA_VOLUME}:/output/CamHD_motion_metadata
+  worker2:
+    image: amarburg/camhd_motion_analysis_rq_worker:latest
+    environment:
+      - RQ_REDIS_URL
+    volumes:
+     - ${METADATA_VOLUME}:/output/CamHD_motion_metadata
