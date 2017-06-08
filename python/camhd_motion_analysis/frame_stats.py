@@ -8,7 +8,7 @@ def frame_stats( path, start,
                 end = -1,
                 stride = 10,
                 frame_stats_path = "frame_stats",
-                host = "https://camhd-app-dev.appspot.com/v1/org/oceanobservatories/rawdata/files" ):
+                host = "http://camhd-app-dev.appspot.com/v1/org/oceanobservatories/rawdata/files" ):
     if end < 0: end = start+1
 
     with tempfile.NamedTemporaryFile() as t:
@@ -22,6 +22,9 @@ def frame_stats( path, start,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE,
                                 encoding='utf8' )
+
+        print("Stdout: ", procout.stdout)
+        print("Stderr: ", procout.stderr)
 
         try:
             # Read the JSON from stdout

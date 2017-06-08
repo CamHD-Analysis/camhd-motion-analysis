@@ -91,8 +91,22 @@ namespace CamHDMotionTracking {
       return false;
     }
 
-    _full1 = getFrame(t1, 1.0);
-    _full2 = getFrame(t2, 1.0);
+    {
+      std::chrono::time_point<std::chrono::system_clock> start(std::chrono::system_clock::now());
+      _full1 = getFrame(t1, 1.0);
+      std::chrono::duration<double> elapsedMs( std::chrono::system_clock::now()-start );
+      LOG(WARNING) << "Retrieving 1 required " << elapsedMs.count() << " ms";
+    }
+
+    {
+      std::chrono::time_point<std::chrono::system_clock> start(std::chrono::system_clock::now());
+      _full2 = getFrame(t2, 1.0);
+
+      std::chrono::duration<double> elapsedMs( std::chrono::system_clock::now()-start );
+      LOG(WARNING) << "Retrieving 2 required " << elapsedMs.count() << " ms";
+    }
+
+
 
     if( _full1.empty() || _full2.empty() ) {
       LOG(WARNING) << "Got an empty frame for t1 = " << t1 << " and t2 = " << t2;
@@ -127,10 +141,19 @@ namespace CamHDMotionTracking {
     cv::Mat warpedMask;
     cv::warpAffine( mask, warpedMask, hint.affine( _imgScale ), mask.size() );
 
+
+
     // Optical flow calculation
     cv::Mat flow( grey1.size(), CV_32FC2 );
+
+    {
+      std::chrono::time_point<std::chrono::system_clock> start(std::chrono::system_clock::now());
     auto flowAlgorithm( cv::createOptFlow_DualTVL1() );
     flowAlgorithm->calc( grey1, grey2, flow );
+
+    std::chrono::duration<double> elapsedMs( std::chrono::system_clock::now()-start );
+    LOG(WARNING) << "Flow calc required " << elapsedMs.count() << " ms";
+  }
 
     // Scale flow by dt
     //flow /= (t2-t1);
@@ -170,6 +193,7 @@ namespace CamHDMotionTracking {
 
   CalculatedSimilarity OpticalFlow::estimateSimilarity( int t1, int t2, const Similarity &hint )
   {
+      std::chrono::time_point<std::chrono::system_clock> start(std::chrono::system_clock::now());
 
     if( !calcFlow( t1, t2, hint) ) return CalculatedSimilarity();
 
@@ -218,6 +242,8 @@ namespace CamHDMotionTracking {
     problem.SetParameterUpperBound( &(similarity[2]), 1,  0.25 * _scaledFlow.rows );
 
 
+{
+      std::chrono::time_point<std::chrono::system_clock> start(std::chrono::system_clock::now());
 
     Solver::Options options;
     //options.preconditioner_type = ceres::IDENTITY;
@@ -234,6 +260,10 @@ namespace CamHDMotionTracking {
     LOG(INFO) << "center : " << center[0] << " " << center[1];
 
     // TODO Tests for validity of solution
+
+    std::chrono::duration<double> elapsedMs( std::chrono::system_clock::now()-start );
+    LOG(WARNING) << "Ceres required " << elapsedMs.count() << " ms";
+  }
 
 
     const double totalScale = _flowScale * _imgScale;
@@ -259,9 +289,12 @@ namespace CamHDMotionTracking {
 
     if( doDisplay ) {
       double foobar[] = {finalSim.scale, finalSim.theta, finalSim.trans[0], finalSim.trans[1]};
-          visualizeWarp( _full1, _full2, foobar, center );
-          waitKey(1);
-      }
+      visualizeWarp( _full1, _full2, foobar, center );
+      waitKey(1);
+    }
+
+    std::chrono::duration<double> elapsedMs( std::chrono::system_clock::now()-start );
+    LOG(WARNING) << "Everything required " << elapsedMs.count() << " ms";
 
     return finalSim;
   }
@@ -358,7 +391,7 @@ namespace CamHDMotionTracking {
     cv::resize( f2, roiTwo, roiTwo.size() );
 
     imshow( "composite", composite);
-  //  waitKey(1);
+    //  waitKey(1);
   }
 
 

@@ -147,3 +147,8 @@ namespace :sequence do
     sh "cat sequence/*.png | ffmpeg -y -framerate 3 -f image2pipe -i - -pix_fmt yuv420p sequence.mov"
   end
 end
+
+
+task :service do
+  sh "docker service create -e RQ_REDIS_URL --mount type=bind,src=$METADATA_VOLUME,dst=/output/CamHD_motion_metadata  --replicas 1 --name worker amarburg/camhd_motion_analysis_rq_worker:latest"
+end

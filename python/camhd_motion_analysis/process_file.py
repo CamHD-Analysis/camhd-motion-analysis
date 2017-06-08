@@ -16,7 +16,7 @@ import dask.threaded
 
 DEFAULT_STRIDE = 10
 
-LAZYCACHE_HOST = "https://camhd-app-dev-nocache.appspot.com/v1/org/oceanobservatories/rawdata/files"
+LAZYCACHE_HOST = "http://camhd-app-dev-nocache.appspot.com/v1/org/oceanobservatories/rawdata/files"
 
 def process_file( mov_path, output_path, num_threads=1, start = 1, stop =-1, stride = DEFAULT_STRIDE ):
 
