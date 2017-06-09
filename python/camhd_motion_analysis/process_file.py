@@ -46,7 +46,7 @@ def process_file( mov_path, output_path, num_threads=1, start = 1, stop =-1, str
     else:
         joutput = [ma.frame_stats(mov_path, f, host=LAZYCACHE_HOST) for f in frames]
 
-    # os.makedirs( os.path.dirname( output_path ))
+    os.makedirs( os.path.dirname( output_path ), exist_ok = True )
 
     print("Saving results to %s" % output_path )
 
