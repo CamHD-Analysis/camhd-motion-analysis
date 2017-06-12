@@ -67,40 +67,84 @@ end
 
 
 namespace :rq do
+
+  namespace :test do
+    redis_url = "redis://192.168.13.108:6379/"
+
+    task :build do
+      sh "docker build --tag camhd_motion_analysis_rq_worker:test " \
+          "--file docker/rq_worker/Dockerfile_test ."
+    end
+
+    task :launch do
+      sh "docker run \
+          --volume /home/aaron/canine/camhd_analysis/CamHD_motion_metadata:/output/CamHD_motion_metadata camhd_motion_analysis_rq_worker:test --redis-url #{redis_url} --log INFO"
+    end
+
+    task :inject do
+      chdir "python" do
+        sh "python3 ./rq_client.py --redis-url #{redis_url} " \
+            " --threads 16 " \
+            " --output-dir /output/CamHD_motion_metadata /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T180000Z.mov"
+      end
+    end
+
+    namespace :swarm do
+
+      task :push do
+        sh "docker tag camhd_motion_analysis_rq_worker:test 127.0.0.1:5000/camhd_motion_analysis_rq_worker:test"
+        sh "docker push 127.0.0.1:5000/camhd_motion_analysis_rq_worker:test"
+      end
+
+      task :launch do
+         sh "docker service create" \
+            " --name test_worker" \
+            " --network lazycache_nocache_default" \
+            " --mount type=bind,source=/auto/canine/aaron/camhd_analysis/CamHD_motion_metadata,destination=/output/CamHD_motion_metadata "\
+            " 127.0.0.1:5000/camhd_motion_analysis_rq_worker:test"\
+            " --redis-url #{redis_url} --log INFO"
+      end
+
+      task :update do
+        sh "docker service update --force test_worker"
+      end
+
+      task :inject do
+        chdir "python" do
+          sh "python3 ./rq_client.py --redis-url #{redis_url} " \
+              " --threads 16 " \
+              " --lazycache-url http://lazycache_nocache:8080/v1/org/oceanobservatories/rawdata/files/" \
+              " --output-dir /output/CamHD_motion_metadata /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T090000Z.mov"
+        end
+      end
+    end
+
+  end
+
+
   task :base_image do
       chdir "docker/rq_worker/" do
       sh "docker build --tag camhd_motion_analysis_rq_worker_base:latest --tag camhd_motion_analysis_rq_worker_base:#{`git rev-parse --short HEAD`.chomp} --file Dockerfile_base ."
     end
   end
 
-  task :worker => :base_image do
-    chdir "docker/rq_worker/" do
-    sh "docker build --no-cache --tag amarburg/camhd_motion_analysis_rq_worker:latest --tag camhd_motion_analysis_rq_worker:latest --tag camhd_motion_analysis_rq_worker:#{`git rev-parse --short HEAD`.chomp} --file Dockerfile_pristine ."
-  end
-  end
+  namespace :prod do
+    task :worker => "rq:base_image" do
+      chdir "docker/rq_worker/" do
+        sh "docker build --no-cache --tag amarburg/camhd_motion_analysis_rq_worker:latest --tag camhd_motion_analysis_rq_worker:latest --tag camhd_motion_analysis_rq_worker:#{`git rev-parse --short HEAD`.chomp} --file Dockerfile_pristine ."
+      end
+    end
 
-  task :push do
-    sh "docker push amarburg/camhd_motion_analysis_rq_worker:latest"
-  end
+    task :push do
+      sh "docker push amarburg/camhd_motion_analysis_rq_worker:latest"
+    end
 
-  task :worker_test  => :base_image do
-    ## To include the current code base, these needs to run at the top level
-    sh "docker build --tag camhd_motion_analysis_rq_worker:test --file docker/rq_worker/Dockerfile_test ."
-  end
-
-  task :launch do
-    sh "docker run --detach --env RQ_REDIS_URL=\"redis://ursine:6379/\" --volume /output/CamHD_motion_metadata:/home/aaron/canine/camhd_analysis/CamHD_motion_metadata/ camhd_motion_analysis_rq_worker:latest"
-  end
-
-  task :launch_test do
-    sh "docker run --env RQ_REDIS_URL=\"redis://ursine:6379/\" --volume /home/aaron/canine/camhd_analysis/CamHD_motion_metadata:/output/CamHD_motion_metadata camhd_motion_analysis_rq_worker:test"
-  end
-
-  task :test do
-    chdir "python" do
-      sh "python3 ./rq_client.py --threads 16 --output-dir /output/CamHD_motion_metadata /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T210000Z.mov"
+    task :launch do
+      sh "docker run --detach --env RQ_REDIS_URL=\"redis://ursine:6379/\" --volume /output/CamHD_motion_metadata:/home/aaron/canine/camhd_analysis/CamHD_motion_metadata/ camhd_motion_analysis_rq_worker:latest"
     end
   end
+
+
 end
 
 

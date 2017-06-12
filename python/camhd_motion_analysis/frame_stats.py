@@ -3,6 +3,7 @@ import tempfile
 import subprocess
 import json
 import pathlib
+import logging
 
 def frame_stats( path, start,
                 end = -1,
@@ -23,8 +24,8 @@ def frame_stats( path, start,
                                 stderr=subprocess.PIPE,
                                 encoding='utf8' )
 
-        print("Stdout: ", procout.stdout)
-        print("Stderr: ", procout.stderr)
+        logging.info("Stdout: %s" % procout.stdout)
+        logging.info("Stderr: %s" % procout.stderr)
 
         try:
             # Read the JSON from stdout
@@ -34,6 +35,5 @@ def frame_stats( path, start,
 
             return results
         except json.JSONDecodeError:
-            print("Stdout: ", procout.stdout)
-            print("Stderr: ", procout.stderr)
+            logging.error('Error decoding JSON from the application')
             return procout.stdout
