@@ -121,7 +121,6 @@ namespace :rq do
 
   end
 
-
   task :base_image do
       chdir "docker/rq_worker/" do
       sh "docker build --tag camhd_motion_analysis_rq_worker_base:latest --tag camhd_motion_analysis_rq_worker_base:#{`git rev-parse --short HEAD`.chomp} --file Dockerfile_base ."
@@ -131,19 +130,54 @@ namespace :rq do
   namespace :prod do
     task :worker => "rq:base_image" do
       chdir "docker/rq_worker/" do
-        sh "docker build --no-cache --tag amarburg/camhd_motion_analysis_rq_worker:latest --tag camhd_motion_analysis_rq_worker:latest --tag camhd_motion_analysis_rq_worker:#{`git rev-parse --short HEAD`.chomp} --file Dockerfile_pristine ."
+        sh "git push"
+        sh "docker build --no-cache "\
+            " --tag camhd_motion_analysis_rq_worker:latest " \
+            " --tag camhd_motion_analysis_rq_worker:#{`git rev-parse --short HEAD`.chomp} "\
+            " --file Dockerfile_pristine ."
       end
     end
 
     task :push do
+      sh "docker tag camhd_motion_analysis_rq_worker:latest amarburg/camhd_motion_analysis_rq_worker:latest"
       sh "docker push amarburg/camhd_motion_analysis_rq_worker:latest"
     end
 
     task :launch do
       sh "docker run --detach --env RQ_REDIS_URL=\"redis://ursine:6379/\" --volume /output/CamHD_motion_metadata:/home/aaron/canine/camhd_analysis/CamHD_motion_metadata/ camhd_motion_analysis_rq_worker:latest"
     end
-  end
 
+    namespace :swarm do
+      redis_url = ENV['REDIS_URL']
+      throw "Please set environment variable REDIS_URL" unless redis_url
+
+      worker_name = "worker"
+
+      task :launch do
+         sh "docker service create" \
+            " --name #{worker_name}" \
+            " --network lazycache_nocache_default" \
+            " --mount type=bind,source=/auto/canine/aaron/camhd_analysis/CamHD_motion_metadata,destination=/output/CamHD_motion_metadata "\
+            " amarburg/camhd_motion_analysis_rq_worker:latest"\
+            " --redis-url #{redis_url} --log INFO"
+      end
+
+      task :update do
+        sh "docker service update --force #{worker_name}"
+      end
+
+      task :inject do
+        chdir "python" do
+          sh "python3 ./rq_client.py --redis-url #{redis_url} " \
+              " --threads 16 " \
+              " --lazycache-url http://lazycache_nocache:8080/v1/org/oceanobservatories/rawdata/files/" \
+              " --output-dir /output/CamHD_motion_metadata"\
+              " /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T060000Z.mov"
+        end
+      end
+    end
+
+  end
 
 end
 

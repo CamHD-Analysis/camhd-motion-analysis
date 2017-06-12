@@ -91,6 +91,5 @@ for infile in infiles:
                         lazycache_url = args.lazycache,
                         num_threads=args.threads,
                         stride=args.stride,
-                        start=6000, stop=6010,
                         timeout='12h',
                         ttl=3600*24 )
