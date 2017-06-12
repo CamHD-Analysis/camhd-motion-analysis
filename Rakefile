@@ -164,7 +164,7 @@ namespace :rq do
             " --redis-url #{redis_url} --log INFO"
       end
 
-      task :update do
+      task :update => "rq:prod:push" do
         sh "docker service update --force #{worker_name}"
       end
 
@@ -177,7 +177,7 @@ namespace :rq do
               " --threads 16 " \
               " --lazycache-url http://lazycache_nocache:8080/v1/org/oceanobservatories/rawdata/files/" \
               " --output-dir /output/CamHD_motion_metadata"\
-              " /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T060000Z.mov"
+              " /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/"
         end
       end
     end
@@ -193,7 +193,7 @@ end
 
 
 task :process_short do
-  sh "build-Debug/bin/frame_stats  --display -o CAMHDA301-20160101T000000Z_short.json --start-at 5000 --stop-at 5050 --stride 10 /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z.mov
+  sh "build-Release/bin/frame_stats  -j 1 -o CAMHDA301-20160101T000000Z_short.json --start-at 5000 --stop-at 5050 --stride 10 /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z.mov
 "
 end
 

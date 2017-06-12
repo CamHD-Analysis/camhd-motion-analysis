@@ -12,6 +12,7 @@
 #include <ceres/ceres.h>
 
 #include "frame_processor.h"
+#include "timer.h"
 
 namespace CamHDMotionTracking {
 
@@ -22,8 +23,6 @@ namespace CamHDMotionTracking {
 
   const std::string OpticalFlow::OPTICAL_FLOW_JSON_NAME = "optical_flow";
   const std::string OpticalFlow::OPTICAL_FLOW_JSON_VERSION = "1.0";
-
-
 
   struct OpticalFlowFunctor {
     OpticalFlowFunctor( const cv::Vec2f &delta, const cv::Point &pt )
@@ -73,6 +72,12 @@ namespace CamHDMotionTracking {
 
   //====
 
+  // Added state
+  Timer _timerFrame1, _timerFrame2, _timerFlow, _timerMinimize, _timerFullCallback;
+
+
+
+  //
 
 
 
@@ -92,18 +97,17 @@ namespace CamHDMotionTracking {
     }
 
     {
-      std::chrono::time_point<std::chrono::system_clock> start(std::chrono::system_clock::now());
+      _timerFrame1.start();
       _full1 = getFrame(t1, 1.0);
-      std::chrono::duration<double> elapsedMs( std::chrono::system_clock::now()-start );
-      LOG(WARNING) << "Retrieving 1 required " << elapsedMs.count() << " ms";
+      _timerFrame1.stop();
+      LOG(WARNING) << "Retrieving 1 required " << _timerFrame1.seconds() << " s";
     }
 
     {
-      std::chrono::time_point<std::chrono::system_clock> start(std::chrono::system_clock::now());
+      _timerFrame2.start();
       _full2 = getFrame(t2, 1.0);
-
-      std::chrono::duration<double> elapsedMs( std::chrono::system_clock::now()-start );
-      LOG(WARNING) << "Retrieving 2 required " << elapsedMs.count() << " ms";
+      _timerFrame2.stop();
+      LOG(WARNING) << "Retrieving 2 required " << _timerFrame2.seconds() << " s";
     }
 
 
@@ -147,12 +151,12 @@ namespace CamHDMotionTracking {
     cv::Mat flow( grey1.size(), CV_32FC2 );
 
     {
-      std::chrono::time_point<std::chrono::system_clock> start(std::chrono::system_clock::now());
+      _timerFlow.start();
     auto flowAlgorithm( cv::createOptFlow_DualTVL1() );
     flowAlgorithm->calc( grey1, grey2, flow );
 
-    std::chrono::duration<double> elapsedMs( std::chrono::system_clock::now()-start );
-    LOG(WARNING) << "Flow calc required " << elapsedMs.count() << " ms";
+_timerFlow.stop();
+    LOG(WARNING) << "Flow calc required " << _timerFlow.seconds() << " s";
   }
 
     // Scale flow by dt
@@ -173,7 +177,22 @@ namespace CamHDMotionTracking {
 
   json OpticalFlow::asJson( int f )
   {
-    return estimateVelocity(f);
+    // Implicit conversion from CalculatedSimilarity
+    json j = estimateVelocity(f);
+
+    json jtiming;
+    jtiming["retrieveFrame1"] = _timerFrame1.seconds();
+    jtiming["retrieveFrame2"] = _timerFrame2.seconds();
+    jtiming["opticalFlow"] = _timerFlow.seconds();
+    jtiming["minimization"] = _timerMinimize.seconds();
+    jtiming["all"] = _timerFullCallback.seconds();
+
+    json jperf;
+    jperf["timing"] = jtiming;
+
+    j["performance"] = jperf;
+
+    return j;
   }
 
   CalculatedSimilarity OpticalFlow::estimateVelocity( int f )
@@ -193,7 +212,7 @@ namespace CamHDMotionTracking {
 
   CalculatedSimilarity OpticalFlow::estimateSimilarity( int t1, int t2, const Similarity &hint )
   {
-      std::chrono::time_point<std::chrono::system_clock> start(std::chrono::system_clock::now());
+    _timerFullCallback.start();
 
     if( !calcFlow( t1, t2, hint) ) return CalculatedSimilarity();
 
@@ -243,7 +262,7 @@ namespace CamHDMotionTracking {
 
 
 {
-      std::chrono::time_point<std::chrono::system_clock> start(std::chrono::system_clock::now());
+      _timerMinimize.start();
 
     Solver::Options options;
     //options.preconditioner_type = ceres::IDENTITY;
@@ -261,8 +280,8 @@ namespace CamHDMotionTracking {
 
     // TODO Tests for validity of solution
 
-    std::chrono::duration<double> elapsedMs( std::chrono::system_clock::now()-start );
-    LOG(WARNING) << "Ceres required " << elapsedMs.count() << " ms";
+    _timerMinimize.stop();
+    LOG(WARNING) << "Ceres required " << _timerMinimize.seconds() << " s";
   }
 
 
@@ -293,8 +312,8 @@ namespace CamHDMotionTracking {
       waitKey(1);
     }
 
-    std::chrono::duration<double> elapsedMs( std::chrono::system_clock::now()-start );
-    LOG(WARNING) << "Everything required " << elapsedMs.count() << " ms";
+    _timerFullCallback.stop();
+    LOG(WARNING) << "Everything required " << _timerFullCallback.seconds() << " s";
 
     return finalSim;
   }
