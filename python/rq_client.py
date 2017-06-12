@@ -22,6 +22,12 @@ parser.add_argument('input', metavar='N', nargs='+',
 parser.add_argument('--threads', metavar='j', type=int, nargs='?', default=1,
                     help='Number of threads to run with dask')
 
+parser.add_argument('--start', type=int, nargs='?', default=1,
+                    help='Frame to start')
+
+parser.add_argument('--stop', type=int, nargs='?', default=-1,
+                    help='Frame to stop')
+
 parser.add_argument('--stride', metavar='s', type=int, nargs='?', default=DEFAULT_STRIDE,
                     help='Stride for frame stats')
 
@@ -91,5 +97,7 @@ for infile in infiles:
                         lazycache_url = args.lazycache,
                         num_threads=args.threads,
                         stride=args.stride,
+                        start=args.start,
+                        stop=args.stop,
                         timeout='12h',
                         ttl=3600*24 )

@@ -128,7 +128,7 @@ namespace :rq do
   end
 
   namespace :prod do
-    task :worker => "rq:base_image" do
+    task :build => "rq:base_image" do
       chdir "docker/rq_worker/" do
         sh "git push"
         sh "docker build --no-cache "\
@@ -148,12 +148,14 @@ namespace :rq do
     end
 
     namespace :swarm do
-      redis_url = ENV['REDIS_URL']
-      throw "Please set environment variable REDIS_URL" unless redis_url
 
       worker_name = "worker"
 
       task :launch do
+
+        redis_url = ENV['REDIS_URL']
+        throw "Please set environment variable REDIS_URL" unless redis_url
+
          sh "docker service create" \
             " --name #{worker_name}" \
             " --network lazycache_nocache_default" \
@@ -167,6 +169,9 @@ namespace :rq do
       end
 
       task :inject do
+        redis_url = ENV['REDIS_URL']
+        throw "Please set environment variable REDIS_URL" unless redis_url
+
         chdir "python" do
           sh "python3 ./rq_client.py --redis-url #{redis_url} " \
               " --threads 16 " \
