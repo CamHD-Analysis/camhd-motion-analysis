@@ -57,7 +57,7 @@ args = parser.parse_args()
     ## First convert input args to list of files
 
 def iterate_path( path ):
-    repo = pycamhd.lazycache( "http://camhd-app-dev-nocache.appspot.com/v1/org/oceanobservatories/rawdata/files" )
+    repo = pycamhd.lazycache( args.lazycache )
     dir_info = repo.get_dir( path )
 
     outfiles = []
@@ -99,5 +99,6 @@ for infile in infiles:
                         stride=args.stride,
                         start=args.start,
                         stop=args.stop,
-                        timeout='12h',
+                        timeout='24h',
+			result_ttl = 3600*24,
                         ttl=3600*24 )
