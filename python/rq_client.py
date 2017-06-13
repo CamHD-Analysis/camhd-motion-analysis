@@ -22,16 +22,25 @@ parser.add_argument('input', metavar='N', nargs='+',
 parser.add_argument('--threads', metavar='j', type=int, nargs='?', default=1,
                     help='Number of threads to run with dask')
 
+parser.add_argument('--start', type=int, nargs='?', default=1,
+                    help='Frame to start')
+
+parser.add_argument('--stop', type=int, nargs='?', default=-1,
+                    help='Frame to stop')
+
 parser.add_argument('--stride', metavar='s', type=int, nargs='?', default=DEFAULT_STRIDE,
                     help='Stride for frame stats')
 
 parser.add_argument('--output-file', dest='outfile', metavar='o', nargs='?', default="output.json",
                     help='File for output')
 
-parser.add_argument('--output-dir', dest='outdir', metavar='o', nargs='?', default=".",
+parser.add_argument('--output-dir', dest='outdir', metavar='o', nargs='?', default="/output/CamHD_motion_metadata",
                     help='File for output')
 
 parser.add_argument('--dry-run', dest='dryrun', action='store_true', help='Dry run')
+
+parser.add_argument('--lazycache-url', dest='lazycache', default=os.environ.get("RQ_LAZYCACHE_URL", "http://camhd-app-dev-nocache.appspot.com/v1/org/oceanobservatories/rawdata/files"),
+                    help='URL to Lazycache repo server')
 
 parser.add_argument('--redis-url', dest='redis', default=os.environ.get("RQ_REDIS_URL", "redis://localhost:6379/"),
                     help='URL to Redis server')
@@ -48,7 +57,7 @@ args = parser.parse_args()
     ## First convert input args to list of files
 
 def iterate_path( path ):
-    repo = pycamhd.lazycache()
+    repo = pycamhd.lazycache( "http://camhd-app-dev-nocache.appspot.com/v1/org/oceanobservatories/rawdata/files" )
     dir_info = repo.get_dir( path )
 
     outfiles = []
@@ -76,7 +85,7 @@ if len(infiles) == 0:
 #filepairs = [[f,(args.outdir + f)] for f in infiles]
 
 
-q = Queue(connection=Redis.from_url(args.redis))
+q = Queue( connection=Redis.from_url(args.redis) )
 for infile in infiles:
     outfile = os.path.splitext(args.outdir + infile)[0] + "_optical_flow.json"
     print("Processing %s, Saving results to %s" % (infile, outfile) )
@@ -85,7 +94,10 @@ for infile in infiles:
         job = q.enqueue( ma.process_file,
                         infile,
                         outfile,
+                        lazycache_url = args.lazycache,
                         num_threads=args.threads,
                         stride=args.stride,
-                        timeout='2h',
+                        start=args.start,
+                        stop=args.stop,
+                        timeout='12h',
                         ttl=3600*24 )

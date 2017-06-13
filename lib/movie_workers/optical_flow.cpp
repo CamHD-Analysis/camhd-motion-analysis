@@ -12,6 +12,7 @@
 #include <ceres/ceres.h>
 
 #include "frame_processor.h"
+#include "timer.h"
 
 namespace CamHDMotionTracking {
 
@@ -22,8 +23,6 @@ namespace CamHDMotionTracking {
 
   const std::string OpticalFlow::OPTICAL_FLOW_JSON_NAME = "optical_flow";
   const std::string OpticalFlow::OPTICAL_FLOW_JSON_VERSION = "1.0";
-
-
 
   struct OpticalFlowFunctor {
     OpticalFlowFunctor( const cv::Vec2f &delta, const cv::Point &pt )
@@ -73,6 +72,12 @@ namespace CamHDMotionTracking {
 
   //====
 
+  // Added state
+  Timer _timerFrame1, _timerFrame2, _timerFlow, _timerMinimize, _timerFullCallback;
+
+
+
+  //
 
 
 
@@ -91,8 +96,21 @@ namespace CamHDMotionTracking {
       return false;
     }
 
-    _full1 = getFrame(t1, 1.0);
-    _full2 = getFrame(t2, 1.0);
+    {
+      _timerFrame1.start();
+      _full1 = getFrame(t1, 1.0);
+      _timerFrame1.stop();
+      LOG(WARNING) << "Retrieving 1 required " << _timerFrame1.seconds() << " s";
+    }
+
+    {
+      _timerFrame2.start();
+      _full2 = getFrame(t2, 1.0);
+      _timerFrame2.stop();
+      LOG(WARNING) << "Retrieving 2 required " << _timerFrame2.seconds() << " s";
+    }
+
+
 
     if( _full1.empty() || _full2.empty() ) {
       LOG(WARNING) << "Got an empty frame for t1 = " << t1 << " and t2 = " << t2;
@@ -127,10 +145,19 @@ namespace CamHDMotionTracking {
     cv::Mat warpedMask;
     cv::warpAffine( mask, warpedMask, hint.affine( _imgScale ), mask.size() );
 
+
+
     // Optical flow calculation
     cv::Mat flow( grey1.size(), CV_32FC2 );
+
+    {
+      _timerFlow.start();
     auto flowAlgorithm( cv::createOptFlow_DualTVL1() );
     flowAlgorithm->calc( grey1, grey2, flow );
+
+_timerFlow.stop();
+    LOG(WARNING) << "Flow calc required " << _timerFlow.seconds() << " s";
+  }
 
     // Scale flow by dt
     //flow /= (t2-t1);
@@ -150,7 +177,22 @@ namespace CamHDMotionTracking {
 
   json OpticalFlow::asJson( int f )
   {
-    return estimateVelocity(f);
+    // Implicit conversion from CalculatedSimilarity
+    json j = estimateVelocity(f);
+
+    json jtiming;
+    jtiming["retrieveFrame1"] = _timerFrame1.seconds();
+    jtiming["retrieveFrame2"] = _timerFrame2.seconds();
+    jtiming["opticalFlow"] = _timerFlow.seconds();
+    jtiming["minimization"] = _timerMinimize.seconds();
+    jtiming["all"] = _timerFullCallback.seconds();
+
+    json jperf;
+    jperf["timing"] = jtiming;
+
+    j["performance"] = jperf;
+
+    return j;
   }
 
   CalculatedSimilarity OpticalFlow::estimateVelocity( int f )
@@ -170,6 +212,7 @@ namespace CamHDMotionTracking {
 
   CalculatedSimilarity OpticalFlow::estimateSimilarity( int t1, int t2, const Similarity &hint )
   {
+    _timerFullCallback.start();
 
     if( !calcFlow( t1, t2, hint) ) return CalculatedSimilarity();
 
@@ -218,6 +261,8 @@ namespace CamHDMotionTracking {
     problem.SetParameterUpperBound( &(similarity[2]), 1,  0.25 * _scaledFlow.rows );
 
 
+{
+      _timerMinimize.start();
 
     Solver::Options options;
     //options.preconditioner_type = ceres::IDENTITY;
@@ -234,6 +279,10 @@ namespace CamHDMotionTracking {
     LOG(INFO) << "center : " << center[0] << " " << center[1];
 
     // TODO Tests for validity of solution
+
+    _timerMinimize.stop();
+    LOG(WARNING) << "Ceres required " << _timerMinimize.seconds() << " s";
+  }
 
 
     const double totalScale = _flowScale * _imgScale;
@@ -259,9 +308,12 @@ namespace CamHDMotionTracking {
 
     if( doDisplay ) {
       double foobar[] = {finalSim.scale, finalSim.theta, finalSim.trans[0], finalSim.trans[1]};
-          visualizeWarp( _full1, _full2, foobar, center );
-          waitKey(1);
-      }
+      visualizeWarp( _full1, _full2, foobar, center );
+      waitKey(1);
+    }
+
+    _timerFullCallback.stop();
+    LOG(WARNING) << "Everything required " << _timerFullCallback.seconds() << " s";
 
     return finalSim;
   }
@@ -358,7 +410,7 @@ namespace CamHDMotionTracking {
     cv::resize( f2, roiTwo, roiTwo.size() );
 
     imshow( "composite", composite);
-  //  waitKey(1);
+    //  waitKey(1);
   }
 
 

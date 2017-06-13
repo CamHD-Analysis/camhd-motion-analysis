@@ -3,12 +3,13 @@ import tempfile
 import subprocess
 import json
 import pathlib
+import logging
 
 def frame_stats( path, start,
                 end = -1,
                 stride = 10,
                 frame_stats_path = "frame_stats",
-                host = "https://camhd-app-dev.appspot.com/v1/org/oceanobservatories/rawdata/files" ):
+                host = "http://camhd-app-dev.appspot.com/v1/org/oceanobservatories/rawdata/files" ):
     if end < 0: end = start+1
 
     with tempfile.NamedTemporaryFile() as t:
@@ -23,6 +24,9 @@ def frame_stats( path, start,
                                 stderr=subprocess.PIPE,
                                 encoding='utf8' )
 
+        logging.info("Stdout: %s" % procout.stdout)
+        logging.info("Stderr: %s" % procout.stderr)
+
         try:
             # Read the JSON from stdout
             results = json.load( t )
@@ -31,6 +35,5 @@ def frame_stats( path, start,
 
             return results
         except json.JSONDecodeError:
-            print("Stdout: ", procout.stdout)
-            print("Stderr: ", procout.stderr)
+            logging.error('Error decoding JSON from the application')
             return procout.stdout
