@@ -28,8 +28,6 @@ gcloud compute instance-templates create worker-template \
             --boot-disk-size 10GB
 
 
-redis://:q3xUPXYE@redis-vm/0
-
 
 gcloud compute instance-groups managed create worker-swarm \
   --base-instance-name worker \

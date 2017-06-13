@@ -21,18 +21,18 @@ namespace :template do
 
     dated_image_name = image_name + Time.now.strftime("-%d%m%y-%H%M%S")
 
-    sh "gcloud compute disk"
-
     sh "gcloud compute images create #{dated_image_name} \
               --source-disk #{image_name} \
               --source-disk-zone us-central1-a \
               --family worker-templates"
 
+    sh "gcloud compute disks delete #{image_name}"
   end
 
   task :instance do
-    sh "gcloud compute instance-templates create worker-template \
-              --machine-type n1-standard-1 --preemptible \
+    sh "gcloud compute instance-templates create worker-template-n1-highcpu-16 \
+              --machine-type n1-highcpu-16 \
+              --preemptible \
               --image-family worker-templates \
               --boot-disk-size 20GB"
 
@@ -46,12 +46,43 @@ end
 namespace :group do
 
 task :create do
-  sh "gcloud compute instance-groups managed create worker-swarm \
+  sh "gcloud compute instance-groups managed create worker-swarm-n1-highcpu-16 \
         --base-instance-name worker \
         --size 2 \
-        --template \
+        --template worker-template-n1-highcpu-16 \
         --zone us-central1-a"
 end
 
+end
 
+namespace :swarm do
+
+  task :manager do
+    sh "docker-machine create swarm-manager -d google \
+            --google-machine-type g1-small --google-zone us-central1-a \
+            --google-tags swarm-cluster --google-project camhd-motion-analysis-swarm \
+            --swarm-master \
+            --metadata startup-script=\"
+#! /bin/bash
+sudo docker swarm init
+\" "
+  end
+
+  task :template do
+    sh "gcloud compute instance-templates create swarm-template-n1-highcpu-8 \
+              --machine-type n1-highcpu-8 \
+              --preemptible \
+              --image-family coreos-stable \
+              --image-project coreos-cloud \
+              --boot-disk-size 10GB \
+              --metadata-from-file user-data=swarm-worker-cloud-init"
+    end
+
+  task :create do
+    sh "gcloud compute instance-groups managed create worker-swarm \
+          --template swarm-template-n1-highcpu-8 \
+          --base-instance-name swarm \
+          --size 1 \
+          --zone us-central1-a"
+  end
 end
