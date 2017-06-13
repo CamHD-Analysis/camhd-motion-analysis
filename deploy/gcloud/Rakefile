@@ -57,12 +57,18 @@ end
 
 namespace :swarm do
 
+  task :ssh do
+    sh "gcloud --project=camhd-motion-analysis-swarm compute ssh swarm-manager "
+  end
+
   task :manager do
-    sh "docker-machine create swarm-manager -d google \
-            --google-machine-type g1-small --google-zone us-central1-a \
-            --google-tags swarm-cluster --google-project camhd-motion-analysis-swarm \
-            --swarm-master \
-            --metadata startup-script=\"
+    sh "docker-machine create swarm-manager -d google " \
+            " --google-machine-type g1-small "\
+            " --google-zone us-central1-a "\
+            " --google-tags swarm-cluster "\
+            " --google-project camhd-motion-analysis-swarm " \
+            " --swarm-master " \
+            " --metadata startup-script=\"
 #! /bin/bash
 sudo docker swarm init
 \" "
@@ -82,7 +88,7 @@ sudo docker swarm init
     sh "gcloud compute instance-groups managed create worker-swarm \
           --template swarm-template-n1-highcpu-8 \
           --base-instance-name swarm \
-          --size 1 \
+          --size 3 \
           --zone us-central1-a"
   end
 end
