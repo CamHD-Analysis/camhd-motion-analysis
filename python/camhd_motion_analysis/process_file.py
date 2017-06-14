@@ -44,7 +44,7 @@ def process_file( mov_path, output_path,
 
     if( num_threads > 1 ):
         values = [delayed(ma.frame_stats)(mov_path,f, host=lazycache_url ) for f in frames]
-        results = compute(*values, get=dask.multiprocessing.get)
+        results = compute(*values, get=dask.threaded.get)
 
         joutput = results[0]
         for i in range(1, len(results)):
