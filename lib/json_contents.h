@@ -11,12 +11,12 @@ namespace CamHDMotionTracking {
 
   inline void addJSONContents( json& j, const std::string &name, const std::string &version ) {
 
-    auto contentsItr = j.find( CONTENTS_JSON_TAG );
-    if( contentsItr == j.end() ) {
-      j[CONTENTS_JSON_TAG] = json::object();
-    }
+    // auto contentsItr = j.find( CONTENTS_JSON_TAG );
+    // if( contentsItr == j.end() ) {
+    //   j[CONTENTS_JSON_TAG] = json::object();
+    // }
 
-    j[CONTENTS_JSON_TAG][name] = version;
+    j[name] = version;
 
   }
 

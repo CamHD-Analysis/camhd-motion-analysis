@@ -5,6 +5,7 @@ import os.path
 import json
 
 import logging
+import platform
 
 # import pycamhd.lazycache as pycamhd
 #
@@ -16,6 +17,8 @@ import pycamhd.lazycache as pycamhd
 from dask import compute, delayed
 import dask.threaded
 import dask.multiprocessing
+
+import time
 
 DEFAULT_STRIDE = 10
 
@@ -35,22 +38,31 @@ def process_file( mov_path, output_path,
         movie_info = repo.get_metadata( url=mov_path )
         stop = movie_info['NumFrames']
 
-    if os.path.isfile( output_path ):
-        logging.warning("File %s exists, skipping" % output_path )
-        return
+    # if os.path.isfile( output_path ):
+    #     logging.warning("File %s exists, skipping" % output_path )
+    #     return
 
     logging.info("Processing %s from %d to %d by %d in %d threads" % (mov_path, start, stop, stride, num_threads))
     frames = range( start, stop, stride )
 
+    start_time = time.time()
+
     if( num_threads > 1 ):
         values = [delayed(ma.frame_stats)(mov_path,f, host=lazycache_url ) for f in frames]
         results = compute(*values, get=dask.threaded.get)
-
-        joutput = results[0]
-        for i in range(1, len(results)):
-            joutput["frame_stats"].extend(results[i]["frame_stats"])
     else:
-        joutput = [ma.frame_stats(mov_path, f, host=lazycache_url ) for f in frames]
+        results = [ma.frame_stats(mov_path,f, host=lazycache_url) for f in frames ]
+
+    end_time = time.time()
+
+    joutput = results[0]
+    for i in range(1, len(results)):
+        joutput["frameStats"].extend(results[i]["frameStats"])
+
+
+    joutput["contents"]["performance"] = {"timing": "1.0", "hostinfo": "1.0" }
+    joutput["performance"] = {"timing": { "elapsedSeconds":  (end_time - start_time) }, "hostinfo" : {"hostname": platform.node() } }
+
 
     os.makedirs( os.path.dirname( output_path ), exist_ok = True )
 

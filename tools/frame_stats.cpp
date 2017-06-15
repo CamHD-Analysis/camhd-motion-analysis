@@ -13,6 +13,7 @@
 
 #include "camhd_client.h"
 #include "interval.h"
+#include "timer.h"
 
 #include "movie_workers/frame_processor.h"
 #include "movie_workers/frame_mean.h"
@@ -198,12 +199,15 @@ int main( int argc, char ** argv )
 	json mov, jsonStats;
 
 	mov << movie;
-	addJSONContents( mov, "frame_stats", "1.0" );
 
-	mov["contents"]["frame_stats"] = json::object();
+	mov["contents"] = json::object();
+
+	//addJSONContents( mov["contents"], "frame_stats", "1.1" );
+
+	mov["contents"]["frameStats"] = json::object();
 
 	for( auto factory : factories ) {
-		factory->addJSONContents( mov["contents"]["frame_stats"] );
+		factory->addJSONContents( mov["contents"]["frameStats"] );
 	}
 
 
@@ -218,25 +222,29 @@ int main( int argc, char ** argv )
 		if( !doStop ) {
 			auto frame = (i==0 ? 1 : i);
 			LOG(INFO) << "Processing frame " << frame;
-			json j;
+			json j = json::object();
 
-	    j["frame_number"] = i;
+	    j["frameNumber"] = i;
 
 			for( auto factory : factories ) {
-				std::chrono::system_clock::time_point startProcess = std::chrono::system_clock::now();
+				Timer processTimer;
 
 				auto proc = (*factory)(movie);
-				j[proc->jsonName()] = proc->asJson(frame);
+				json data = proc->asJson(frame);
 
-				std::chrono::system_clock::time_point endProcess = std::chrono::system_clock::now();
 
-				j[proc->jsonName()]["duration_us"] = std::chrono::duration_cast<std::chrono::microseconds>(endProcess - startProcess).count();
+				LOG(INFO) << "Name " << proc->jsonName() << endl;
+
+				j[ proc->jsonName() ] = data;
+				j["durationSeconds"] = processTimer.seconds();
+
+
 			}
 
 			#pragma omp critical
 			{
 				if( !j.empty() ) jsonStats.push_back( j );
-				mov["frame_stats"] = jsonStats;
+				mov["frameStats"] = jsonStats;
 
 				// Save incremental result
 				if( config.jsonOutSet ) {
@@ -248,9 +256,9 @@ int main( int argc, char ** argv )
 	}
 
 	std::chrono::duration<double> elapsedSeconds = std::chrono::system_clock::now()-start;
-
-	addJSONContents( mov, "timing", "1.0" );
-	mov["timing"]["elapsed_system_time_s"] = elapsedSeconds.count();
+	//
+	// addJSONContents( mov, "timing", "1.0" );
+	// mov["timing"]["elapsed_system_time_s"] = elapsedSeconds.count();
 
 		if( config.jsonOutSet ) {
 			ofstream f( config.jsonOut.string() );

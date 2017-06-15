@@ -83,6 +83,10 @@ task :process do
 "
 end
 
+task :process_python do
+  sh "python3 python/frame_stats.py  --start 5000 --stop 5010 --force --log INFO RS03ASHS/PN03B/06-CAMHDA301/2016/01/18/CAMHDA301-20160118T150000Z.mov"
+end
+
 
 
 namespace :timelapse do
