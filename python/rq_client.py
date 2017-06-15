@@ -34,7 +34,7 @@ parser.add_argument('--stride', metavar='s', type=int, nargs='?', default=DEFAUL
 parser.add_argument('--output-file', dest='outfile', metavar='o', nargs='?', default="output.json",
                     help='File for output')
 
-parser.add_argument('--output-dir', dest='outdir', metavar='o', nargs='?', default="/output/CamHD_motion_metadata",
+parser.add_argument('--output-dir', dest='outdir', metavar='o', nargs='?', default=os.environ.get("OUTPUT_DIR","/output/CamHD_motion_metadata"),
                     help='File for output')
 
 parser.add_argument('--dry-run', dest='dryrun', action='store_true', help='Dry run')
@@ -90,15 +90,21 @@ for infile in infiles:
     outfile = os.path.splitext(args.outdir + infile)[0] + "_optical_flow.json"
     print("Processing %s, Saving results to %s" % (infile, outfile) )
 
-    if args.dryrun == False:
-        job = q.enqueue( ma.process_file,
-                        infile,
-                        outfile,
-                        lazycache_url = args.lazycache,
-                        num_threads=args.threads,
-                        stride=args.stride,
-                        start=args.start,
-                        stop=args.stop,
-                        timeout='24h',
-			            result_ttl = 3600*24,
-                        ttl=3600*24 )
+    if os.path.isfile( outfile ):
+        logging.warning("Output file %s exists, skipping" % outfile )
+        continue
+
+    if args.dryrun == True:
+        continue
+
+    job = q.enqueue( ma.process_file,
+                    infile,
+                    outfile,
+                    lazycache_url = args.lazycache,
+                    num_threads=args.threads,
+                    stride=args.stride,
+                    start=args.start,
+                    stop=args.stop,
+                    timeout='24h',
+		            result_ttl = 3600*24,
+                    ttl=3600*24 )
