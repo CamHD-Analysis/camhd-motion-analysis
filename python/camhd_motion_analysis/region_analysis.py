@@ -6,7 +6,7 @@ import time
 from os import path
 import pandas as pd
 
-def region_analysis( data_file ):
+def region_analysis( data_file, outfile = False ):
     j = json.load(data_file)
 
 
@@ -135,5 +135,9 @@ def region_analysis( data_file ):
     json_out = { 'movie': j['movie'],
                  'contents': { 'regions': '1.0' },
                 'regions': classify }
+
+    if outfile:
+        with open( outfile, 'w' ) as out:
+            json.dump( json_out, out, indent = 4)
 
     return json_out
