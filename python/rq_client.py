@@ -47,10 +47,14 @@ parser.add_argument('--lazycache-url', dest='lazycache', default=os.environ.get(
 parser.add_argument('--redis-url', dest='redis', default=os.environ.get("RQ_REDIS_URL", "redis://localhost:6379/"),
                     help='URL to Redis server')
 
+parser.add_argument('--log', metavar='log', nargs='?', default='WARNING',
+                    help='Logging level')
+
 args = parser.parse_args()
 
+logging.basicConfig( level=args.log.upper() )
 
-#mov_path = args.'/RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z.mov'
+
 ## If output-file is specified, then input must be a single file
 ## otherwise output-dir must be set
 #  and len(args.input) == 1:
@@ -77,7 +81,7 @@ for f in args.input:
     if re.search('\.mov$', f ):
         infiles.append(f)
     else:
-        print("Iterating on %s" % f)
+        logging.info("Iterating on %s" % f)
         infiles += iterate_path( f )
 
 ## Generate infile->outfile pairs:
@@ -90,7 +94,7 @@ if len(infiles) == 0:
 q = Queue( connection=Redis.from_url(args.redis) )
 for infile in infiles:
     outfile = os.path.splitext(args.outdir + infile)[0] + "_optical_flow.json"
-    print("Processing %s, Saving results to %s" % (infile, outfile) )
+    logging.info("Processing %s, Saving results to %s" % (infile, outfile) )
 
     if os.path.isfile( outfile ):
         logging.warning("Output file %s exists, skipping" % outfile )
