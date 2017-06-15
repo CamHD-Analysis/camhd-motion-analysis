@@ -8,6 +8,8 @@ from rq import Queue
 import os.path
 import re
 
+import logging
+
 import pycamhd.lazycache as pycamhd
 
 import camhd_motion_analysis as ma
