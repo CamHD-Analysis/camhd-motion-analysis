@@ -9,9 +9,17 @@ import pandas as pd
 def region_analysis( data_file, outfile = False ):
     j = json.load(data_file)
 
+    if "frame_stats" in j:
+        stats = j["frame_stats"]
+        frame_num_key = "frame_number"
+        optical_flow_key = "similarity"
+    else:
+        stats = j["frameStats"]
+        frame_num_key = "frameNumber"
+        optical_flow_key = "opticalFlow"
 
-    frame_num = [ f["frame_number"] for f in j["frame_stats"]]
-    similarities = [ f["similarity"] for f in j["frame_stats"] ]
+    frame_num = [ f[frame_num_key] for f in stats]
+    similarities = [ f[optical_flow_key] for f in stats ]
 
     stats = pd.DataFrame(similarities, index=frame_num).sort_index()
 
@@ -75,9 +83,9 @@ def region_analysis( data_file, outfile = False ):
         subset = series.iloc[lambda df: df.index >= bounds[0]].iloc[lambda df: df.index < bounds[1]]
 
         return {
-            "scale_mean": subset.scale.mean(),
-            "tx_mean": subset.trans_x.mean(),
-            "ty_mean": subset.trans_y.mean(),
+            "scaleMean": subset.scale.mean(),
+            "txMean": subset.trans_x.mean(),
+            "tyMean": subset.trans_y.mean(),
             "size": np.asscalar(subset.size)
         }
 
@@ -96,27 +104,27 @@ def region_analysis( data_file, outfile = False ):
             out["type"] = "short"
             return out
 
-        if stats["scale_mean"] > 1.05: out["type"] = "zoom_in"
-        if stats["scale_mean"] < 0.95: out["type"] = "zoom_out"
+        if stats["scaleMean"] > 1.05: out["type"] = "zoom_in"
+        if stats["scaleMean"] < 0.95: out["type"] = "zoom_out"
 
         ## Ugliness
-        if stats["tx_mean"] > 10:
-            if stats["ty_mean"] > 10:
+        if stats["txMean"] > 10:
+            if stats["tyMean"] > 10:
                 out["type"] = "NW"
-            elif stats["ty_mean"] < -10:
+            elif stats["tyMean"] < -10:
                 out["type"] = "SW"
             else:
                 out["type"] = "W"
-        elif stats["tx_mean"] < -10:
-            if stats["ty_mean"] > 10:
+        elif stats["txMean"] < -10:
+            if stats["tyMean"] > 10:
                 out["type"] = "NE"
-            elif stats["ty_mean"] < -10:
+            elif stats["tyMean"] < -10:
                 out["type"] = "SE"
             else:
                 out["type"] = "E"
-        elif stats["ty_mean"] > 10:
+        elif stats["tyMean"] > 10:
                 out["type"] = "N"
-        elif stats["ty_mean"] < -10:
+        elif stats["tyMean"] < -10:
                 out["type"] = "S"
 
 
