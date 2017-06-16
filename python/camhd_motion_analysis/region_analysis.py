@@ -64,7 +64,7 @@ def region_analysis( data_file, outfile = False ):
 
         regions = []
         for r in static:
-            regions.append( {"bounds": r, "type": "static", "stats": calc_stats(valid, r) } )
+            regions.append( {"startFrame": r[0], "endFrame": r[1], "type": "static", "stats": calc_stats(valid, r) } )
 
         ## Now fill in the regions
         for i in range(0, len(static)-1):
@@ -96,7 +96,8 @@ def region_analysis( data_file, outfile = False ):
 
         stats = calc_stats( series, bounds )
 
-        out = {"bounds": bounds,
+        out = {"startFrame": bounds[0],
+                "endFrame": bounds[1],
                "type": "unknown",
               "stat": stats}
 
@@ -134,14 +135,14 @@ def region_analysis( data_file, outfile = False ):
     stable_regions = contiguous_region( stable )
     classify = classify_regions( valid, stable_regions )
 
-    classify.sort(key=lambda x: x["bounds"][0])
+    classify.sort(key=lambda x: x["startFrame"])
 
 
     #regions_filename = metadata_repo + path.splitext(data_filename)[0] + '_regions.json'
 
     ## Write metainformation
     json_out = { 'movie': j['movie'],
-                 'contents': { 'regions': '1.0' },
+                 'contents': { 'regions': '1.1' },
                 'regions': classify }
 
     if outfile:
