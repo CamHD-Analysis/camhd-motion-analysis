@@ -37,6 +37,7 @@ HTTPResult HTTPRequest::operator()( ) {
       //request.setOpt(new curlpp::options::Header(true));
 
       request.setOpt( new curlpp::options::FollowLocation(true));
+      request.setOpt( new curlpp::options::Timeout(300));
 
       curlpp::types::WriteFunctionFunctor writeFunctor = std::bind(&HTTPRequest::WriteCallback, this, _1, _2, _3);
       request.setOpt(new curlpp::options::WriteFunction(writeFunctor));

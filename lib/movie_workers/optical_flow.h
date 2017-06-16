@@ -14,6 +14,8 @@
 
 #include "factory.h"
 
+#include "timer.h"
+
 namespace CamHDMotionTracking {
 
   struct OpticalFlow : public FrameProcessor {
@@ -43,6 +45,9 @@ namespace CamHDMotionTracking {
 
     cv::Mat buildMask( const cv::Mat &grey );
 
+  protected:
+
+    Timer _timerFrame1, _timerFrame2, _timerFlow, _timerMinimize, _timerFullCallback;
 
   };
 

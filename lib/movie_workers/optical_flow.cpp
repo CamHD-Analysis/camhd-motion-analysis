@@ -11,8 +11,6 @@
 
 #include <ceres/ceres.h>
 
-#include "frame_processor.h"
-#include "timer.h"
 
 namespace CamHDMotionTracking {
 
@@ -21,7 +19,7 @@ namespace CamHDMotionTracking {
 
   //=====
 
-  const std::string OpticalFlow::OPTICAL_FLOW_JSON_NAME = "optical_flow";
+  const std::string OpticalFlow::OPTICAL_FLOW_JSON_NAME = "opticalFlow";
   const std::string OpticalFlow::OPTICAL_FLOW_JSON_VERSION = "1.0";
 
   struct OpticalFlowFunctor {
@@ -69,14 +67,6 @@ namespace CamHDMotionTracking {
   };
 
 
-
-  //====
-
-  // Added state
-  Timer _timerFrame1, _timerFrame2, _timerFlow, _timerMinimize, _timerFullCallback;
-
-
-
   //
 
 
@@ -86,7 +76,7 @@ namespace CamHDMotionTracking {
   {;}
 
   const string OpticalFlow::jsonName()
-  { return "similarity"; }
+  { return OPTICAL_FLOW_JSON_NAME; }
 
 
   bool OpticalFlow::calcFlow( int t1, int t2, const Similarity &hint )
