@@ -39,8 +39,9 @@ def process_file( mov_path, output_path,
     logging.info("Processing %s" % mov_path)
 
     if stop < 0:
-        repo = pycamhd.lazycache( lazycache_url  )
-        movie_info = repo.get_metadata( url=mov_path )
+        logging.info("Querying lazycache at %s for movie length" % lazycache_url )
+        repo = pycamhd.lazycache( lazycache_url )
+        movie_info = repo.get_metadata( url=mov_path, timeout=120  )
         stop = movie_info['NumFrames']
 
     # if os.path.isfile( output_path ):
