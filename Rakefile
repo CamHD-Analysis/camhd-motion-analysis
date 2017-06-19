@@ -35,46 +35,18 @@ buildTypes.each { |build_type|
   end
 }
 
-
-#DockerTasks.new
-
-# namespace :docker do
-#   namespace :deploy do
-#     task :base do
-#         sh "docker build --tag camhd_motion_analysis_base:latest --tag camhd_motion_analysis_base:#{`git rev-parse --short HEAD`.chomp} docker/base"
-#     end
-#
-#     task :build => :base do
-#       chdir "docker/deploy" do
-#         sh "docker build --tag camhd_motion_analysis:latest --tag camhd_motion_analysis:#{`git rev-parse --short HEAD`.chomp} docker-deploy"
-#       end
-#     end
-#
-#     task :test do
-#       sh "docker run camhd_motion_analysis:latest --help"
-#     end
-#
-#     task :push_gcr => :test do
-#       registry_url = "us.gcr.io/camhd-image-statistics/camhd_motion_analysis"
-#       sh "docker tag camhd_motion_analysis:latest #{registry_url}"
-#       sh "gcloud docker -- push #{registry_url}"
-#     end
-#   end
-# end
-
-
 task :stitch do
   sh "build-Debug/bin/stitch --display --regions /home/aaron/workspace/camhd_analysis/CamHD_motion_metadata/RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z_optical_flow_regions.json"
 end
 
 
 task :process_short do
-  sh "build-Release/bin/frame_stats  -j 1 -o CAMHDA301-20160101T000000Z_short.json --start-at 5000 --stop-at 5050 --stride 10 /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z.mov
+  sh "build-Release/bin/frame_stats -o CAMHDA301-20160101T000000Z_short.json --frame 5000 /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z.mov
 "
 end
 
 task :process_gpu do
-  sh "build-Debug/bin/frame_stats --gpu -j 1 -o CAMHDA301-20160101T000000Z_gpu.json --start-at 5000 --stop-at 6000 --stride 10 /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z.mov
+  sh "build-Debug/bin/frame_stats --gpu -o CAMHDA301-20160101T000000Z_gpu.json --start-at 5000 --stop-at 6000 --stride 10 /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z.mov
 "
 end
 
@@ -84,7 +56,7 @@ task :process do
 end
 
 task :process_python do
-  sh "python3 python/frame_stats.py  --start 5000 --stop 5010 --force --log INFO RS03ASHS/PN03B/06-CAMHDA301/2016/01/18/CAMHDA301-20160118T150000Z.mov"
+  sh "python3 python/frame_stats.py  --start 5000 --stop 5050 --force --log INFO RS03ASHS/PN03B/06-CAMHDA301/2016/01/18/CAMHDA301-20160118T150000Z.mov"
 end
 
 

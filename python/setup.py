@@ -9,4 +9,5 @@ setup(name='camhd_motion_analysis',
       license='MIT',
       packages=['camhd_motion_analysis'],
       scripts=['region_analysis.py', 'rq_client.py'],
+      install_requires=['py-cpuinfo'],
       zip_safe=False)

@@ -10,8 +10,10 @@ class LibMotionTracking(ConanFile):
             "with_gpu": [True, False],
             "with_openmp": [True, False]}
   default_options = "opencv_dir=''", "build_parallel=True", "with_openmp=False", "with_gpu=False"
-  requires =  "TCLAP/master@jmmut/testing", \
-              "g3log/master@amarburg/testing"
+  requires =  "TCLAP/master@jmmut/testing"
+
+  # , \
+  #             "g3log/master@amarburg/testing"
 
   def config(self):
     #self.options[""].opencv_dir = self.options.opencv_dir

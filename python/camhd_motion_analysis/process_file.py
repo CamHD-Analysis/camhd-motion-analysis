@@ -7,6 +7,8 @@ import json
 import logging
 import platform
 
+import cpuinfo
+
 # import pycamhd.lazycache as pycamhd
 #
 # import paths
@@ -60,8 +62,13 @@ def process_file( mov_path, output_path,
         joutput["frameStats"].extend(results[i]["frameStats"])
 
 
-    joutput["contents"]["performance"] = {"timing": "1.0", "hostinfo": "1.0" }
-    joutput["performance"] = {"timing": { "elapsedSeconds":  (end_time - start_time) }, "hostinfo" : {"hostname": platform.node() } }
+    joutput["contents"]["performance"] = {"timing": "1.0", "hostinfo": "1.1" }
+
+    info = cpuinfo.get_cpu_info()
+
+    joutput["performance"] = {"timing": { "elapsedSeconds":  (end_time - start_time) },
+                                          "hostinfo" : {"hostname": platform.node(),
+                                          "cpu":  info['brand'] } }
 
 
     os.makedirs( os.path.dirname( output_path ), exist_ok = True )

@@ -5,20 +5,16 @@ import json
 import pathlib
 import logging
 
-def frame_stats( path, start,
-                end = -1,
-                stride = 10,
+def frame_stats( path, frame,
                 frame_stats_path = "frame_stats",
                 host = "http://camhd-app-dev.appspot.com/v1/org/oceanobservatories/rawdata/files" ):
-    if end < 0: end = start+1
 
     with tempfile.NamedTemporaryFile() as t:
+        logging.info("Processing %s frame %d" % (path, frame))
         procout = subprocess.run( [frame_stats_path,
                                                "-o", t.name,
-                                               "--start-at", str(start),
-                                               "--stop-at", str(end),
-                                               "--stride", str(stride),
-                                               "--host", host,
+                                               "--frame", str(frame),
+                                               "--lazycache-url", host,
                                                 path ],
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE,
