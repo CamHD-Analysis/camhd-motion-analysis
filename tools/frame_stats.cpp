@@ -69,7 +69,6 @@ public:
 
 				TCLAP::UnlabeledValueArg<std::string> pathArg("mov-path","path",true,"","path",cmd);
 
-				TCLAP::ValueArg<std::string> jsonOutArg("o", "out", "File for JSON output (leave blank for stdout)", true ,jsonOut.string(), "filename", cmd );
 				TCLAP::ValueArg<int> frameArg("","frame","",true,0,"frame number", cmd);
 
 				TCLAP::ValueArg<std::string> lazycacheUrlArg("","lazycache-url","URL to host",false, DefaultCacheURL.string(),"url",cmd);
@@ -83,9 +82,6 @@ public:
 				cacheURL = lazycacheUrlArg.getValue();
 
 				frame = frameArg.getValue();
-
-				jsonOut = jsonOutArg.getValue();
-				jsonOutSet = jsonOutArg.isSet();
 
 				useGpu = gpuArg.getValue();
 
@@ -102,9 +98,6 @@ public:
 		fs::path cacheURL;
 		std::string path;
 		// Set a default for testing
-
-		fs::path jsonOut;
-		bool jsonOutSet;
 
 		bool useGpu;
 
@@ -199,12 +192,8 @@ int main( int argc, char ** argv )
 	// addJSONContents( mov, "timing", "1.0" );
 	// mov["timing"]["elapsed_system_time_s"] = elapsedSeconds.count();
 
-		if( config.jsonOutSet ) {
-			ofstream f( config.jsonOut.string() );
-			f << mov.dump(4) << endl;
-		} else {
-			cout << mov.dump(4) << endl;
-		}
+	// JSON to stdout
+	cout << mov.dump(4) << endl;
 
 		LOG(INFO) << "Completed in " << mainTimer.seconds() << " seconds";
 

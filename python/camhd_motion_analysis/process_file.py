@@ -8,6 +8,7 @@ import logging
 import platform
 
 import cpuinfo
+from datetime import datetime
 
 # import pycamhd.lazycache as pycamhd
 #
@@ -31,6 +32,8 @@ def process_file( mov_path, output_path,
                 num_threads=1, start = 1, stop =-1,
                 lazycache_url = DEFAULT_LAZYCACHE_HOST,
                 stride = DEFAULT_STRIDE ):
+
+    startTime = datetime.now()
 
     logging.info('Using Lazycache at %s' % lazycache_url)
     logging.info("Processing %s" % mov_path)
@@ -62,11 +65,16 @@ def process_file( mov_path, output_path,
         joutput["frameStats"].extend(results[i]["frameStats"])
 
 
+
+    endTime = datetime.now();
+
     joutput["contents"]["performance"] = {"timing": "1.0", "hostinfo": "1.1" }
 
     info = cpuinfo.get_cpu_info()
 
-    joutput["performance"] = {"timing": { "elapsedSeconds":  (end_time - start_time) },
+    joutput["performance"] = {"timing": { "elapsedSeconds":  (end_time - start_time),
+                                            "startTime" : str(startTime),
+                                            "endTime" : str(endTime) },
                                           "hostinfo" : {"hostname": platform.node(),
                                           "cpu":  info['brand'] } }
 

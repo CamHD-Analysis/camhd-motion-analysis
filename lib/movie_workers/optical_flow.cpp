@@ -259,7 +259,7 @@ _timerFlow.stop();
     //options.minimizer_type = LINE_SEARCH;
     options.linear_solver_type = ceres::DENSE_QR;
     options.max_num_iterations = 1000;
-    options.minimizer_progress_to_stdout = true;
+    //options.minimizer_progress_to_stdout = true;
     //options.check_gradients = true;
     Solver::Summary summary;
     Solve(options, &problem, &summary);
