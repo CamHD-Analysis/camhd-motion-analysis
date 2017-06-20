@@ -6,8 +6,12 @@ import time
 from os import path
 import pandas as pd
 
-def region_analysis( data_file, outfile = False ):
-    j = json.load(data_file)
+
+
+def load_and_clean_json( data_file ):
+
+    with open(data_file) as input:
+        j = json.load(input)
 
     if "frame_stats" in j:
         stats = j["frame_stats"]
@@ -38,8 +42,8 @@ def region_analysis( data_file, outfile = False ):
 
     valid['trans'] = valid.trans_x**2 + valid.trans_y**2
 
+    return stats
 
-    stable = valid.loc[lambda df: df.trans < 100].loc[ lambda df: (df.scale-1).abs() < 0.01 ]
 
     def contiguous_region(series, delta = 10):
         series['dt'] = series.index.to_series().diff(1).fillna(0)
@@ -90,53 +94,61 @@ def region_analysis( data_file, outfile = False ):
         }
 
 
-    def analyze_bounds( series, bounds ):
-        ## heuristics for now
-        #print(bounds)
+def analyze_bounds( series, bounds ):
+    ## heuristics for now
+    #print(bounds)
 
-        stats = calc_stats( series, bounds )
+    stats = calc_stats( series, bounds )
 
-        out = {"startFrame": bounds[0],
-                "endFrame": bounds[1],
-               "type": "unknown",
-              "stat": stats}
+    out = {"startFrame": bounds[0],
+            "endFrame": bounds[1],
+           "type": "unknown",
+          "stat": stats}
 
-        if stats["size"] < 2:
-            out["type"] = "short"
-            return out
-
-        if stats["scaleMean"] > 1.05: out["type"] = "zoom_in"
-        if stats["scaleMean"] < 0.95: out["type"] = "zoom_out"
-
-        ## Ugliness
-        if stats["txMean"] > 10:
-            if stats["tyMean"] > 10:
-                out["type"] = "NW"
-            elif stats["tyMean"] < -10:
-                out["type"] = "SW"
-            else:
-                out["type"] = "W"
-        elif stats["txMean"] < -10:
-            if stats["tyMean"] > 10:
-                out["type"] = "NE"
-            elif stats["tyMean"] < -10:
-                out["type"] = "SE"
-            else:
-                out["type"] = "E"
-        elif stats["tyMean"] > 10:
-                out["type"] = "N"
-        elif stats["tyMean"] < -10:
-                out["type"] = "S"
-
-
+    if stats["size"] < 2:
+        out["type"] = "short"
         return out
+
+    if stats["scaleMean"] > 1.05: out["type"] = "zoom_in"
+    if stats["scaleMean"] < 0.95: out["type"] = "zoom_out"
+
+    ## Ugliness
+    if stats["txMean"] > 10:
+        if stats["tyMean"] > 10:
+            out["type"] = "NW"
+        elif stats["tyMean"] < -10:
+            out["type"] = "SW"
+        else:
+            out["type"] = "W"
+    elif stats["txMean"] < -10:
+        if stats["tyMean"] > 10:
+            out["type"] = "NE"
+        elif stats["tyMean"] < -10:
+            out["type"] = "SE"
+        else:
+            out["type"] = "E"
+    elif stats["tyMean"] > 10:
+            out["type"] = "N"
+    elif stats["tyMean"] < -10:
+            out["type"] = "S"
+
+
+    return out
+
+
+
+
+def region_analysis( data_file, outfile = False ):
+
+    valid = load_and_clean_json( data_file )
+
+    stable = valid.loc[lambda df: df.trans < 100].loc[ lambda df: (df.scale-1).abs() < 0.01 ]
 
 
     stable_regions = contiguous_region( stable )
     classify = classify_regions( valid, stable_regions )
 
     classify.sort(key=lambda x: x["startFrame"])
-
 
     #regions_filename = metadata_repo + path.splitext(data_filename)[0] + '_regions.json'
 
