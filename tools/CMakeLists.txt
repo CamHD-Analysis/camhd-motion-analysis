@@ -31,17 +31,17 @@ add_executable(frame_stats frame_stats.cpp )
 target_link_libraries( frame_stats
   ${TOOLS_LIBRARIES}
  )
-
- add_executable(annotate annotate.cpp )
- target_link_libraries( annotate
-   ${TOOLS_LIBRARIES}
-  )
-
-
-add_executable(stitch stitch.cpp )
-target_link_libraries( stitch
-  ${TOOLS_LIBRARIES}
- )
+#
+#  add_executable(annotate annotate.cpp )
+#  target_link_libraries( annotate
+#    ${TOOLS_LIBRARIES}
+#   )
+#
+#
+# add_executable(stitch stitch.cpp )
+# target_link_libraries( stitch
+#   ${TOOLS_LIBRARIES}
+#  )
 
 
  install(TARGETS frame_stats

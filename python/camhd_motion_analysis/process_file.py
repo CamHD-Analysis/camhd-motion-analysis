@@ -7,6 +7,9 @@ import json
 import logging
 import platform
 
+import cpuinfo
+from datetime import datetime
+
 # import pycamhd.lazycache as pycamhd
 #
 # import paths
@@ -30,12 +33,15 @@ def process_file( mov_path, output_path,
                 lazycache_url = DEFAULT_LAZYCACHE_HOST,
                 stride = DEFAULT_STRIDE ):
 
+    startTime = datetime.now()
+
     logging.info('Using Lazycache at %s' % lazycache_url)
     logging.info("Processing %s" % mov_path)
 
     if stop < 0:
-        repo = pycamhd.lazycache( lazycache_url  )
-        movie_info = repo.get_metadata( url=mov_path )
+        logging.info("Querying lazycache at %s for movie length" % lazycache_url )
+        repo = pycamhd.lazycache( lazycache_url )
+        movie_info = repo.get_metadata( url=mov_path, timeout=120  )
         stop = movie_info['NumFrames']
 
     # if os.path.isfile( output_path ):
@@ -60,8 +66,18 @@ def process_file( mov_path, output_path,
         joutput["frameStats"].extend(results[i]["frameStats"])
 
 
-    joutput["contents"]["performance"] = {"timing": "1.0", "hostinfo": "1.0" }
-    joutput["performance"] = {"timing": { "elapsedSeconds":  (end_time - start_time) }, "hostinfo" : {"hostname": platform.node() } }
+
+    endTime = datetime.now();
+
+    joutput["contents"]["performance"] = {"timing": "1.0", "hostinfo": "1.1" }
+
+    info = cpuinfo.get_cpu_info()
+
+    joutput["performance"] = {"timing": { "elapsedSeconds":  (end_time - start_time),
+                                            "startTime" : str(startTime),
+                                            "endTime" : str(endTime) },
+                                          "hostinfo" : {"hostname": platform.node(),
+                                          "cpu":  info['brand'] } }
 
 
     os.makedirs( os.path.dirname( output_path ), exist_ok = True )

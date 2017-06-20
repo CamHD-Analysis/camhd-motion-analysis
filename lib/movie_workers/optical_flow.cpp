@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include <g3log/g3log.hpp>
+#include <glog/logging.h>
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -20,7 +20,7 @@ namespace CamHDMotionTracking {
   //=====
 
   const std::string OpticalFlow::OPTICAL_FLOW_JSON_NAME = "opticalFlow";
-  const std::string OpticalFlow::OPTICAL_FLOW_JSON_VERSION = "1.0";
+  const std::string OpticalFlow::OPTICAL_FLOW_JSON_VERSION = "1.1";
 
   struct OpticalFlowFunctor {
     OpticalFlowFunctor( const cv::Vec2f &delta, const cv::Point &pt )
@@ -175,7 +175,7 @@ _timerFlow.stop();
     jtiming["retrieveFrame2"] = _timerFrame2.seconds();
     jtiming["opticalFlow"] = _timerFlow.seconds();
     jtiming["minimization"] = _timerMinimize.seconds();
-    jtiming["all"] = _timerFullCallback.seconds();
+    jtiming["elapsedSeconds"] = _timerFullCallback.seconds();
 
     json jperf;
     jperf["timing"] = jtiming;
@@ -259,7 +259,7 @@ _timerFlow.stop();
     //options.minimizer_type = LINE_SEARCH;
     options.linear_solver_type = ceres::DENSE_QR;
     options.max_num_iterations = 1000;
-    options.minimizer_progress_to_stdout = true;
+    //options.minimizer_progress_to_stdout = true;
     //options.check_gradients = true;
     Solver::Summary summary;
     Solve(options, &problem, &summary);

@@ -2,7 +2,7 @@
 
 #include <opencv2/gpu/gpu.hpp>
 
-#include <g3log/g3log.hpp>
+#include <glog/logging.h>
 
 namespace CamHDMotionTracking {
 

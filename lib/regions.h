@@ -2,7 +2,7 @@
 
 #include <fstream>
 
-#include <g3log/g3log.hpp>
+#include <glog/logging.h>
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;

@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <chrono>
+#include <signal.h>
 
 #ifdef USE_OPENMP
 #include <omp.h>
@@ -27,8 +28,10 @@
 #include "json.hpp"
 using json = nlohmann::json;
 
-#include <g3log/g3log.hpp>
-#include <g3log/logworker.hpp>
+// #include <g3log/g3log.hpp>
+// #include <g3log/logworker.hpp>
+
+#include <glog/logging.h>
 
 using namespace std;
 //using namespace cv;
@@ -57,56 +60,32 @@ public:
 
 		bool parseArgs( int argc, char **argv )
 		{
+			FLAGS_logtostderr = true;
+			FLAGS_minloglevel = 0;
+			google::InitGoogleLogging(argv[0]);
+
 			try {
 				TCLAP::CmdLine cmd("Command description message", ' ', "0.0");
 
-				TCLAP::UnlabeledValueArg<std::string> pathsArg("mov-path","path",true,"","path",cmd);
+				TCLAP::UnlabeledValueArg<std::string> pathArg("mov-path","path",true,"","path",cmd);
 
-				TCLAP::ValueArg<std::string> jsonOutArg("o", "out", "File for JSON output (leave blank for stdout)", false,jsonOut.string(), "filename", cmd );
-				TCLAP::ValueArg<std::string> hostArg("","host","URL to host",false,DefaultCacheURL.string(),"url",cmd);
+				TCLAP::ValueArg<int> frameArg("","frame","",true,0,"frame number", cmd);
 
-				TCLAP::ValueArg<int> parallelismArg("j","parallelism","Number of threads", false, -1, "num of threads", cmd);
-
-				TCLAP::ValueArg<int> startAtArg("","start-at","",false,startAt,"frame number",cmd);
-				TCLAP::ValueArg<int> stopAtArg("","stop-at","",false,stopAt,"frame number",cmd);
-				TCLAP::ValueArg<int> strideArg("","stride","Number of frames for stride",false,stride,"num of frames",cmd);
-
-				TCLAP::ValueArg<int> frameArg("","frame","",false,0,"frame number", cmd);
-
+				TCLAP::ValueArg<std::string> lazycacheUrlArg("","lazycache-url","URL to host",false, DefaultCacheURL.string(),"url",cmd);
 
 				TCLAP::SwitchArg gpuArg("g","gpu","Use GPU",cmd,false);
-				TCLAP::SwitchArg displayArg("x","display","Show results in window", cmd, false);
 
 				// Parse the argv array.
 				cmd.parse( argc, argv );
 
 				// Args back to
-				cacheURL = hostArg.getValue();
+				cacheURL = lazycacheUrlArg.getValue();
 
-				parallelismSet = parallelismArg.isSet();
-				parallelism = parallelismArg.getValue();
-
-				if( frameArg.isSet() ) {
-					startAt = frameArg.getValue();
-					stopAt = startAt+1;
-					stride = 0;
-				} else {
-					startAt = startAtArg.getValue();
-					startAtSet = startAtArg.isSet();
-
-					stopAt = stopAtArg.getValue();
-					stopAtSet = stopAtArg.isSet();
-
-					stride = strideArg.getValue();
-				}
-
-				jsonOut = jsonOutArg.getValue();
-				jsonOutSet = jsonOutArg.isSet();
+				frame = frameArg.getValue();
 
 				useGpu = gpuArg.getValue();
-				doDisplay = displayArg.getValue();
 
-				path = pathsArg.getValue();
+				path = pathArg.getValue();
 
 			} catch (TCLAP::ArgException &e)  {
 				LOG(FATAL) << "error: " << e.error() << " for arg " << e.argId();
@@ -120,32 +99,16 @@ public:
 		std::string path;
 		// Set a default for testing
 
-		fs::path jsonOut;
-		bool jsonOutSet;
+		bool useGpu;
 
-		int parallelism, numThreads;
-		bool parallelismSet;
-
-		bool useGpu, doDisplay;
-
-		int stopAt = -1;
-		int startAt = -1;
-
-		bool startAtSet, stopAtSet;
-
-		int stride = 5000;
+		int frame;
 
 };
 
 int main( int argc, char ** argv )
 {
-	auto worker = g3::LogWorker::createLogWorker();
-  //auto handle= worker->addDefaultLogger(argv[0],".");
-  g3::initializeLogging(worker.get());
-
   // RAAI initializer for curlpp
 	curlpp::Cleanup cleanup;
-
 
 	if(signal(SIGINT, catchSignal ) == SIG_ERR) {
 			LOG(FATAL) << "An error occurred while setting the signal handler.";
@@ -158,14 +121,8 @@ int main( int argc, char ** argv )
 		exit(-1);
 	}
 
-#ifdef USE_OPENMP
-	if( config.parallelismSet && config.parallelism > 0 ) {
-		omp_set_num_threads( config.parallelism );
-	}
-#endif
-
 	// Measure time of execution
-	std::chrono::time_point<std::chrono::system_clock> start( std::chrono::system_clock::now() );
+	Timer mainTimer;
 
 	fs::path movURL( config.cacheURL );
 	movURL /= config.path;
@@ -180,7 +137,8 @@ int main( int argc, char ** argv )
 	LOG(INFO) << "File has " << movie.numFrames() << " frames";
 
 	std::vector< FrameProcessorFactory::Ptr > factories;
-	//processor = new FrameStatistics stats(movie);
+
+
 #ifdef USE_GPU
 	if( config.useGpu ) {
 		LOG(INFO) << "Using GPU-based optical flow";
@@ -191,7 +149,7 @@ int main( int argc, char ** argv )
 #endif
 	{
 		auto factory = new OpticalFlowFactory();
-		factory->doDisplay = config.doDisplay;
+		factory->doDisplay = false;
 		factories.emplace_back( factory );
 	}
 	//processors.emplace_back( new FrameStatistics(movie) );
@@ -199,7 +157,6 @@ int main( int argc, char ** argv )
 	json mov, jsonStats;
 
 	mov << movie;
-
 	mov["contents"] = json::object();
 
 	//addJSONContents( mov["contents"], "frame_stats", "1.1" );
@@ -210,64 +167,35 @@ int main( int argc, char ** argv )
 		factory->addJSONContents( mov["contents"]["frameStats"] );
 	}
 
+	const int frameNumber = config.frame;
 
-	const int startAt = (config.startAtSet ? std::max( 0, config.startAt ) : 0 );
-	const int stopAt = (config.stopAtSet ? std::min( movie.numFrames(), config.stopAt ) : movie.numFrames() );
+	LOG(INFO) << "Processing frame " << frameNumber;
+	json j = json::object();
 
-	#pragma omp parallel for shared(jsonStats)
-	for( auto i = startAt; i < stopAt; i += config.stride ) {
+  j["frameNumber"] = frameNumber;
 
-		// This might seem like a funny way to break from a loop, but OpenMP does
-		// not allow breaking from within loops
-		if( !doStop ) {
-			auto frame = (i==0 ? 1 : i);
-			LOG(INFO) << "Processing frame " << frame;
-			json j = json::object();
+	for( auto factory : factories ) {
+		Timer processTimer;
 
-	    j["frameNumber"] = i;
+		auto proc = (*factory)(movie);
+		json data = proc->asJson(frameNumber);
 
-			for( auto factory : factories ) {
-				Timer processTimer;
-
-				auto proc = (*factory)(movie);
-				json data = proc->asJson(frame);
+		j[ proc->jsonName() ] = data;
+		j["durationSeconds"] = processTimer.seconds();
 
 
-				LOG(INFO) << "Name " << proc->jsonName() << endl;
-
-				j[ proc->jsonName() ] = data;
-				j["durationSeconds"] = processTimer.seconds();
-
-
-			}
-
-			#pragma omp critical
-			{
-				if( !j.empty() ) jsonStats.push_back( j );
-				mov["frameStats"] = jsonStats;
-
-				// Save incremental result
-				if( config.jsonOutSet ) {
-					ofstream f( config.jsonOut.string() );
-					f << mov.dump(4) << endl;
-				}
-			}
-		}
 	}
 
-	std::chrono::duration<double> elapsedSeconds = std::chrono::system_clock::now()-start;
-	//
+	if( !j.empty() ) jsonStats.push_back( j );
+	mov["frameStats"] = jsonStats;
+
 	// addJSONContents( mov, "timing", "1.0" );
 	// mov["timing"]["elapsed_system_time_s"] = elapsedSeconds.count();
 
-		if( config.jsonOutSet ) {
-			ofstream f( config.jsonOut.string() );
-			f << mov.dump(4) << endl;
-		} else {
-			cout << mov.dump(4) << endl;
-		}
+	// JSON to stdout
+	cout << mov.dump(4) << endl;
 
-		LOG(DEBUG) << "Completed in " << elapsedSeconds.count() << " seconds";
+		LOG(INFO) << "Completed in " << mainTimer.seconds() << " seconds";
 
 
 	exit(0);
