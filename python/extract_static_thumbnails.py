@@ -22,11 +22,13 @@ parser.add_argument('input', metavar='N', nargs='+',
 # parser.add_argument('--base-dir', dest='basedir', metavar='o', nargs='?',
 #                     help='Base directory')
 
-parser.add_argument('--output-dir', dest='outdir', metavar='o', nargs='?', default="./",
+parser.add_argument('--output-dir', dest='outdir', metavar='o', nargs='?', default=".",
                     help='File for output')
 
 parser.add_argument('--log', metavar='log', nargs='?', default='INFO',
                     help='Logging level')
+
+parser.add_argument('--force', dest='force', action='store_true', help='Force overwrite')
 
 args = parser.parse_args()
 
@@ -57,6 +59,13 @@ for input_path in args.input:
         regions_json = ma.load_regions( infile )
         mov_path = regions_json['movie']['URL']
 
+        classification_file = args.outdir + path.splitext(mov_path)[0] + "_classify.json"
+        if path.exists( classification_file ):
+            with open(classification_file) as f:
+                classification = json.load( f )
+        else:
+            classification = {}
+
         regions = pd.DataFrame( regions_json["regions"] ).drop('stats',1)
 
         static = regions[ regions.type == "static"]
@@ -79,8 +88,13 @@ for input_path in args.input:
             frames = frames[1:-1]
 
             for f in frames:
-                image_path = args.outdir + path.splitext(mov_path)[0] + ("/frame_%08d.png" % f)
+                base_path = path.splitext(mov_path)[0] + ("/frame_%08d.png" % f)
+                image_path = args.outdir + base_path
                 print(image_path)
+
+                if path.exists( image_path ) and not args.force:
+                    logging.warning("Image %s already exists, not remaking" % image_path )
+                    continue;
 
                 image = qt.get_frame( mov_path, f, timeout=30 )
 
@@ -88,9 +102,14 @@ for input_path in args.input:
 
                 misc.imsave( image_path, image )
 
+                if base_path not in classification:
+                    classification[base_path] = "unknown"
+
+
             #images = [ qt.get_frame( mov_path, f, timeout=30 ) for f in frames ]
 
-
+        with open( classification_file, 'w') as f:
+            json.dump(classification, f, indent=2)
 
             # # Create a numpy array of floats to store the average (assume RGB images)
             # arr = np.zeros(images[0].shape,np.float)
