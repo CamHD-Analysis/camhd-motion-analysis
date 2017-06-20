@@ -7,11 +7,16 @@ from os import path
 import pandas as pd
 
 
-
 def load_and_clean_json( data_file ):
+    return clean_json( load_json( data_file ))
 
+def load_json( data_file ):
     with open(data_file) as input:
         j = json.load(input)
+
+    return j
+
+def clean_json( j ):
 
     if "frame_stats" in j:
         stats = j["frame_stats"]
@@ -27,8 +32,12 @@ def load_and_clean_json( data_file ):
 
     stats = pd.DataFrame(similarities, index=frame_num).sort_index()
 
-    ## Extract only valid
-    valid = stats[ stats.valid == True ]
+    return stats
+
+def select_valid( stats ):
+    return stats[ stats.valid == True ]
+
+def flatten_structure( valid ):
 
     # Break the similarity structure out into columns
     #similarity = pd.DataFrame.from_records( valid.similarity, valid.index )
@@ -42,56 +51,56 @@ def load_and_clean_json( data_file ):
 
     valid['trans'] = valid.trans_x**2 + valid.trans_y**2
 
-    return stats
+    return valid
 
 
-    def contiguous_region(series, delta = 10):
-        series['dt'] = series.index.to_series().diff(1).fillna(0)
-        series['block'] = (series.index.to_series().diff(1) > (delta*1.01) ).cumsum()
-        #print(series)
+def contiguous_region(series, delta = 10):
+    series['dt'] = series.index.to_series().diff(1).fillna(0)
+    series['block'] = (series.index.to_series().diff(1) > (delta*1.01) ).cumsum()
+    #print(series)
 
-        blocks = series.groupby('block')
-        #print(blocks.groups)
+    blocks = series.groupby('block')
+    #print(blocks.groups)
 
-        static_regions = []
-        for name,group in blocks:
-            static_regions += [ [ np.asscalar(group.index.min()), np.asscalar(group.index.max()) ] ]
+    static_regions = []
+    for name,group in blocks:
+        static_regions += [ [ np.asscalar(group.index.min()), np.asscalar(group.index.max()) ] ]
 
-        ## Drop regions which are too short
+    ## Drop regions which are too short
 
-        static_regions = [r for r in static_regions if (r[1]-r[0] > 1)]
+    static_regions = [r for r in static_regions if (r[1]-r[0] > 1)]
 
-        return static_regions
-
-
-    def classify_regions( valid, static ):
-
-        regions = []
-        for r in static:
-            regions.append( {"startFrame": r[0], "endFrame": r[1], "type": "static", "stats": calc_stats(valid, r) } )
-
-        ## Now fill in the regions
-        for i in range(0, len(static)-1):
-            start = static[i][1]+10;    ## Hm, 10 is hard coded right now...
-            end = static[i+1][0];
-
-            bounds = [start,end]
-
-            region = analyze_bounds( valid, bounds )
-            if region: regions.append( region )
-
-        return regions
+    return static_regions
 
 
-    def calc_stats( series, bounds ):
-        subset = series.iloc[lambda df: df.index >= bounds[0]].iloc[lambda df: df.index < bounds[1]]
+def classify_regions( valid, static ):
 
-        return {
-            "scaleMean": subset.scale.mean(),
-            "txMean": subset.trans_x.mean(),
-            "tyMean": subset.trans_y.mean(),
-            "size": np.asscalar(subset.size)
-        }
+    regions = []
+    for r in static:
+        regions.append( {"startFrame": r[0], "endFrame": r[1], "type": "static", "stats": calc_stats(valid, r) } )
+
+    ## Now fill in the regions
+    for i in range(0, len(static)-1):
+        start = static[i][1]+10;    ## Hm, 10 is hard coded right now...
+        end = static[i+1][0];
+
+        bounds = [start,end]
+
+        region = analyze_bounds( valid, bounds )
+        if region: regions.append( region )
+
+    return regions
+
+
+def calc_stats( series, bounds ):
+    subset = series.iloc[lambda df: df.index >= bounds[0]].iloc[lambda df: df.index < bounds[1]]
+
+    return {
+        "scaleMean": subset.scale.mean(),
+        "txMean": subset.trans_x.mean(),
+        "tyMean": subset.trans_y.mean(),
+        "size": np.asscalar(subset.size)
+    }
 
 
 def analyze_bounds( series, bounds ):
@@ -103,7 +112,7 @@ def analyze_bounds( series, bounds ):
     out = {"startFrame": bounds[0],
             "endFrame": bounds[1],
            "type": "unknown",
-          "stat": stats}
+          "stats": stats}
 
     if stats["size"] < 2:
         out["type"] = "short"
@@ -139,8 +148,9 @@ def analyze_bounds( series, bounds ):
 
 
 def region_analysis( data_file, outfile = False ):
-
-    valid = load_and_clean_json( data_file )
+    j = load_json( data_file )
+    stats = clean_json( j )
+    valid = flatten_structure( select_valid( stats ))
 
     stable = valid.loc[lambda df: df.trans < 100].loc[ lambda df: (df.scale-1).abs() < 0.01 ]
 
