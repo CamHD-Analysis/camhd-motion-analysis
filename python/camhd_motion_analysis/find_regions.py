@@ -66,8 +66,7 @@ def contiguous_region(series, delta = 10):
     for name,group in blocks:
         static_regions += [ [ np.asscalar(group.index.min()), np.asscalar(group.index.max()) ] ]
 
-    ## Drop regions which are too short
-
+    ## Drop static regions which are too short
     static_regions = [r for r in static_regions if (r[1]-r[0] > 1)]
 
     return static_regions
@@ -77,9 +76,12 @@ def classify_regions( valid, static ):
 
     regions = []
     for r in static:
-        regions.append( {"startFrame": r[0], "endFrame": r[1], "type": "static", "stats": calc_stats(valid, r) } )
+        regions.append( {"startFrame": r[0],
+                        "endFrame": r[1],
+                        "type": "static",
+                        "stats": calc_stats(valid, r) } )
 
-    ## Now fill in the regions
+    ## Now fill in the regions between the static sections
     for i in range(0, len(static)-1):
         start = static[i][1]+10;    ## Hm, 10 is hard coded right now...
         end = static[i+1][0];
