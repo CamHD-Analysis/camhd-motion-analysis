@@ -30,29 +30,19 @@ parser.add_argument('--log', metavar='log', nargs='?', default='INFO',
 
 parser.add_argument('--force', dest='force', action='store_true', help='Force overwrite')
 
+parser.add_argument('--lazycache-url', dest='lazycache', default=os.environ.get("LAZYCACHE_URL", "http://camhd-app-dev-nocache.appspot.com/v1/org/oceanobservatories/rawdata/files"),
+                    help='URL to Lazycache repo server')
+
 args = parser.parse_args()
 
 logging.basicConfig( level=args.log.upper() )
 
-lazycache_url = "https://camhd-app-dev-nocache.appspot.com/v1/org/oceanobservatories/rawdata/files/"
-qt = camhd.lazycache( lazycache_url )
+qt = camhd.lazycache( args.lazycache )
 
 for input_path in args.input:
 
-    # p = input_path
-    # if args.basedir:
-    #     p = args.basedir + p
-    # else:
-    #     p = input_path
 
     for infile in glob.iglob( input_path, recursive=True ):
-
-        # if args.basedir:
-        #     subpath = path.relpath(infile, args.basedir)
-        # else:
-        #     subpath = infile
-        #
-        # subpath = path.splitext( subpath )[0]
 
         logging.info( "Processing %s" % infile)
 
@@ -74,10 +64,6 @@ for input_path in args.input:
 
         static["length"] = static.endFrame - static.startFrame
         static = static.loc[ static.length >= min_length ]
-
-        avg_images = {}
-
-        static = static.head(2)
 
         for idx,r in static.iterrows():
 
@@ -105,23 +91,5 @@ for input_path in args.input:
                 if base_path not in classification:
                     classification[base_path] = "unknown"
 
-
-            #images = [ qt.get_frame( mov_path, f, timeout=30 ) for f in frames ]
-
         with open( classification_file, 'w') as f:
             json.dump(classification, f, indent=2)
-
-            # # Create a numpy array of floats to store the average (assume RGB images)
-            # arr = np.zeros(images[0].shape,np.float)
-            #
-            # # Build up average pixel intensities, casting each image as an array of floats
-            # for im in images:
-            #      arr = arr+im
-            # arr = arr / len(images)
-            #
-            # # Round values in array and cast as 8-bit integer
-            # arr=np.array(np.round(arr),dtype=np.uint8)
-            #
-            # imshow(np.asarray(arr))
-            #
-            # avg_images[idx] = arr
