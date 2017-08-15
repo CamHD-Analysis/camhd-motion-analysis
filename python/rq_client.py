@@ -66,6 +66,9 @@ def iterate_path( path ):
     repo = pycamhd.lazycache( args.lazycache )
     dir_info = repo.get_dir( path )
 
+    if not dir_info:
+        return []
+
     outfiles = []
     for f in dir_info['Files']:
         if re.search('\.mov$', f ):
