@@ -143,7 +143,7 @@ int main( int argc, char ** argv )
 	if( config.useGpu ) {
 		LOG(INFO) << "Using GPU-based optical flow";
 		auto factory = new GPUOpticalFlowFactory();
-		factory->doDisplay = config.doDisplay;
+		factory->doDisplay = false;
 		factories.emplace_back( factory );
 	} else
 #endif

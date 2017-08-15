@@ -4,7 +4,8 @@
 
 from .frame_stats import *
 from .process_file import *
-from .region_analysis import *
+from .find_regions import *
+from .identify_regions import *
 
 __version__ = '0.1.0'
 
