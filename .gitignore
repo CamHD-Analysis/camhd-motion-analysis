@@ -2,3 +2,6 @@
 __pycache__/
 config.rb
 prod.env
+.AppleDouble/
+build-*/
+python/.cache/
