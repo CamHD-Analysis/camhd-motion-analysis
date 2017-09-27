@@ -114,6 +114,5 @@ for infile in infiles:
                     stride=args.stride,
                     start=args.start,
                     stop=args.stop,
-                    timeout='1024h',
-		    result_ttl = 3600*168,
-                    ttl=3600*168 )
+                    timeout='24h',
+		            result_ttl=3600)
