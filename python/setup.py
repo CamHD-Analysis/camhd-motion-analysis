@@ -8,6 +8,6 @@ setup(name='camhd_motion_analysis',
       author_email='amarburg@apl.washington.edu',
       license='MIT',
       packages=['camhd_motion_analysis'],
-      scripts=['region_analysis.py', 'rq_client.py'],
+      scripts=['region_analysis.py', 'rq_job_injector.py'],
       install_requires=['py-cpuinfo'],
       zip_safe=False)

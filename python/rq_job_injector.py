@@ -41,8 +41,11 @@ parser.add_argument('--output-dir', dest='outdir', metavar='o', nargs='?', defau
 
 parser.add_argument('--dry-run', dest='dryrun', action='store_true', help='Dry run')
 
-parser.add_argument('--lazycache-url', dest='lazycache', default=os.environ.get("RQ_LAZYCACHE_URL", "http://camhd-app-dev-nocache.appspot.com/v1/org/oceanobservatories/rawdata/files"),
-                    help='URL to Lazycache repo server')
+parser.add_argument('--client-lazycache-url', dest='clientlazycache', default=os.environ.get("RQ_LAZYCACHE_URL", None),
+                    help='Lazycache URL to use for job injection')
+
+parser.add_argument('--lazycache-url', dest='lazycache', default=os.environ.get("RQ_LAZYCACHE_URL", None),
+                    help='Lazycache URL to pass to jobs')
 
 parser.add_argument('--redis-url', dest='redis', default=os.environ.get("RQ_REDIS_URL", "redis://localhost:6379/"),
                     help='URL to Redis server')
@@ -62,9 +65,18 @@ logging.basicConfig( level=args.log.upper() )
 # else:
     ## First convert input args to list of files
 
+
+# Use --lazycache-url to set the Lazycache for the _jobs_
+# Also use it for this script _unless_ --client-lazycache-url
+# is set
+client_lazycache = args.lazycache
+if args.clientlazycache != None:
+    client_lazycache = args.clientlazycache
+
+
 def iterate_path( path ):
-    repo = pycamhd.lazycache( args.lazycache )
-    dir_info = repo.get_dir( path )
+    repo = pycamhd.lazycache(client_lazycache)
+    dir_info = repo.get_dir(path)
 
     if not dir_info:
         return []
@@ -90,9 +102,6 @@ for f in args.input:
 ## Generate infile->outfile pairs:
 if len(infiles) == 0:
     exit
-
-#filepairs = [[f,(args.outdir + f)] for f in infiles]
-
 
 q = Queue( connection=Redis.from_url(args.redis) )
 for infile in infiles:
