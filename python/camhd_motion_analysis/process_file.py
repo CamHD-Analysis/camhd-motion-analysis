@@ -41,7 +41,7 @@ def process_file( mov_path, output_path,
     if stop < 0:
         logging.info("Querying lazycache at %s for movie length" % lazycache_url )
         repo = pycamhd.lazycache( lazycache_url )
-        movie_info = repo.get_metadata( url=mov_path, timeout=120  )
+        movie_info = repo.get_metadata( url=mov_path, timeout=120 )
         stop = movie_info['NumFrames']
 
     # if os.path.isfile( output_path ):
@@ -61,11 +61,12 @@ def process_file( mov_path, output_path,
 
     end_time = time.time()
 
-    joutput = results[0]
-    for i in range(1, len(results)):
-        joutput["frameStats"].extend(results[i]["frameStats"])
-
-
+    joutput = None
+    for result in results:
+        if not joutput:
+            joutput = result
+    else:
+            joutput["frameStats"].extend(results["frameStats"])
 
     endTime = datetime.now();
 
