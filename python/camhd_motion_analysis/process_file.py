@@ -65,8 +65,8 @@ def process_file( mov_path, output_path,
     for result in results:
         if not joutput:
             joutput = result
-    else:
-            joutput["frameStats"].extend(results["frameStats"])
+        else:
+            joutput["frameStats"].extend(result["frameStats"])
 
     endTime = datetime.now();
 
