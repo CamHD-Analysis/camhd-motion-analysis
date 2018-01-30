@@ -1,0 +1,7 @@
+imports:
+    fips-googletest:
+        git: https://github.com/amarburg/fips-googletest.git
+
+defines:
+  FIPS_RTTI: ON
+  FIPS_EXCEPTIONS: ON

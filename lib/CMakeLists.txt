@@ -16,15 +16,15 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-# This needs to be set before add_library .. only on OSX?
-set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin )
+fips_begin_module( camhd )
 
-# build shared library.
-add_library( camhd SHARED ${libcamhd_SRCS} )
+  fips_files( ${libcamhd_SRCS} )
+  fips_libs( ${COMMON_LIBRARIES} )
+  #fips_deps( logger g3log )
 
-target_link_libraries( camhd ${COMMON_LIBRARIES} )
+fips_end_module()
 
-
-install(TARGETS camhd 
-	LIBRARY DESTINATION lib
+install(TARGETS camhd
+ RUNTIME DESTINATION lib
+  ARCHIVE DESTINATION lib
 )
