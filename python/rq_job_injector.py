@@ -16,7 +16,7 @@ import camhd_motion_analysis as ma
 
 DEFAULT_STRIDE = 10
 
-parser = argparse.ArgumentParser(description='Process a file using frame_stats.')
+parser = argparse.ArgumentParser(description='Inject an RQ job.')
 
 parser.add_argument('input', metavar='N', nargs='+',
                     help='Path to process')
@@ -44,10 +44,6 @@ parser.add_argument('--output-dir', dest='outdir', metavar='o', nargs='?',
 
 parser.add_argument('--dry-run', dest='dryrun', action='store_true', help='Dry run')
 
-parser.add_argument('--client-lazycache-url', dest='clientlazycache',
-                    default=os.environ.get("RQ_LAZYCACHE_URL", None),
-                    help='Lazycache URL to use for job injection')
-
 parser.add_argument('--lazycache-url', dest='lazycache',
                     default=os.environ.get("RQ_LAZYCACHE_URL", None),
                     help='Lazycache URL to pass to jobs')
@@ -66,13 +62,9 @@ logging.basicConfig(level=args.log.upper())
 # Use --lazycache-url to set the Lazycache for the _jobs_
 # Also use it for this script _unless_ --client-lazycache-url
 # is set
-client_lazycache = args.lazycache
-if args.clientlazycache:
-    client_lazycache = args.clientlazycache
-
 
 def iterate_path(path):
-    repo = pycamhd.lazycache(client_lazycache)
+    repo = pycamhd.lazycache(args.lazycache)
     dir_info = repo.get_dir(path)
 
     if not dir_info:
