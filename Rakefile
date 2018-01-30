@@ -1,59 +1,16 @@
 
-task :default => "release:test"
-
-@conan_opts = {  build_parallel: 'False' }
-@conan_settings = {}
-@conan_scopes = { build_tests: 'True' }
-@conan_build = "outdated"
-load 'config.rb' if FileTest.readable? 'config.rb'
-
-
-## TODO. Add task to check for git submodules...
-
-buildTypes =  ['Debug','Release']
-buildTypes.each { |build_type|
-  namespace build_type.downcase.to_sym do
-    build_dir = ENV['BUILD_DIR'] || "build-#{build_type}"
-
-    @conan_settings[:build_type] = build_type
-    conan_opts = @conan_opts.each_pair.map { |key,val| "-o %s=%s" % [key,val] } +
-                @conan_settings.each_pair.map { |key,val| "-s %s=%s" % [key,val] }
-
-
-                # + @conan_scopes.each_pair.map { |key,val| "--scope %s=%s" % [key,val] }
-
-    task :build do
-      FileUtils::mkdir build_dir unless FileTest::directory? build_dir
-      sh "conan source ."
-      chdir build_dir do
-        sh "conan install %s .. --build=%s" % [conan_opts.join(' '), @conan_build]
-        sh "conan build .."
-      end
-    end
-
-    task :test => :build do
-      #
-    end
-  end
-}
-
-task :stitch do
-  sh "build-Debug/bin/stitch --display --regions /home/aaron/workspace/camhd_analysis/CamHD_motion_metadata/RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z_optical_flow_regions.json"
-end
-
-
 task :process_short do
-  sh "build-Release/bin/frame_stats -o CAMHDA301-20160101T000000Z_short.json --frame 5000 /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z.mov
+  sh "./fips run frame_stats -o CAMHDA301-20160101T000000Z_short.json --frame 5000 /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z.mov
 "
 end
 
 task :process_gpu do
-  sh "build-Debug/bin/frame_stats --gpu -o CAMHDA301-20160101T000000Z_gpu.json --start-at 5000 --stop-at 6000 --stride 10 /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z.mov
+  sh "./fips run frame_stats --gpu -o CAMHDA301-20160101T000000Z_gpu.json --start-at 5000 --stop-at 6000 --stride 10 /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z.mov
 "
 end
 
 task :process do
-  sh "build-Release/bin/frame_stats  -o CAMHDA301-20160101T000000Z.json --stride 10 /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z.mov
+  sh "./fips run frame_stats  -o CAMHDA301-20160101T000000Z.json --stride 10 /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z.mov
 "
 end
 
