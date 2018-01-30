@@ -2,8 +2,8 @@
 
 echo "launch_worker.sh"
 
-if [ ! -f $OUTPUT_DIR/README.md ]; then
-  echo "Could not find output directory $OUTPUT_DIR"
+if [ ! -f /output/CamHD_motion_metadata/README.md ]; then
+  echo "Could not find output directory /output/CamHD_motion_metadata"
   exit
 fi
 
