@@ -6,7 +6,7 @@ import pathlib
 import logging
 
 def frame_stats( path, frame,
-                frame_stats_path = "frame_stats",
+                frame_stats_path = "/home/aaron/workspace/CamHD_analysis/fips-deploy/camhd-motion-analysis/linux-make-debug/frame_stats",
                 host = "http://camhd-app-dev.appspot.com/v1/org/oceanobservatories/rawdata/files" ):
 
     logging.info("Processing %s frame %d" % (path, frame))
@@ -27,6 +27,6 @@ def frame_stats( path, frame,
         #TODO: Check output quality here
 
         return results
-    except json.JSONDecodeError:
-        logging.error('Error decoding JSON from the application')
+    except json.JSONDecodeError as ex:
+        logging.error('Error decoding JSON from the application:\n %s', ex.doc)
         return procout.stdout
