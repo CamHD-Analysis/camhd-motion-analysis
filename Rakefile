@@ -51,7 +51,7 @@ require 'dotenv'
 require 'fileutils'
 require 'date'
 
-PUBLIC_LAZYCACHE_URL = "https://camhd-cache.appspot.com/v1/org/oceanobservatories/rawdata/files/"
+PUBLIC_LAZYCACHE_URL = "https://cache.camhd.science/v1/org/oceanobservatories/rawdata/files/"
 LOCAL_LAZYCACHE_URL  = "http://lazycache:8080/v1/org/oceanobservatories/rawdata/files"
 
 lazycache_name = "lazycache"
@@ -76,50 +76,11 @@ def in_docker( &blk )
   chdir( "docker/", &blk )
 end
 
-
-# def docker( *args );         sh "docker", *args; end
-#
-# def docker_build( *args );   docker("build", *args); end
-# def docker_run( *args );     docker("run", *args);   end
-
-
-
-## No default
-task :default
-
 namespace :network do
   task :create do
     docker *%W{ network create --attachable --driver=overlay #{network_name} }
   end
 end
-
-# namespace :lazycache do
-#
-#   desc "Builds a pristine Lazycache image, pulling go-lazycache from Github"
-#   task :build do
-#     sh "docker", "build", "--no-cache", \
-#                   "--tag", lazycache_image_dockerhub, \
-#                   "--file", "deploy/docker/Dockerfile",
-#                   lazycache_github
-#   end
-#
-#   task :push do
-#     sh "docker", "push", lazycache_image_dockerhub
-#     #docker "tag", lazycache_image_dockerhub, lazycache_image_gcr
-#     #sh *%W{ gcloud docker -- push #{lazycache_image_gcr} }
-#   end
-#
-#   task :pull do
-#     docker "pull", lazycache_iamge_dockerhub
-#   end
-#
-#   # task :deploy => :pull do
-#   #   docker "service", "create", "--name", lazycache_name, \
-#   #           "--network", network_name, "-p", "8080", \
-#   #           lazycache_image_dockerhub
-#   # end
-# end
-
 
 namespace :worker do
 
@@ -129,7 +90,7 @@ namespace :worker do
 
     # Builds the "production" worker image.  This includes a pristine checkout of
     # camhd_motion_analysis from github
-    task :build => "worker:base:build" do
+    task :build=> ["worker:base:build", "deploy/Dockerfile_prod"] do
         sh "docker", "build", "--no-cache",
                       "--tag", "#{worker_image}:latest",
                       "--tag", "#{worker_image}:#{`git rev-parse --short HEAD`.chomp}",
@@ -163,7 +124,7 @@ namespace :worker do
                --tag #{worker_image_base}:#{`git rev-parse --short HEAD`.chomp}
                --file deploy/Dockerfile_base .  }
 
-    task :build do
+    task :build => ["deploy/Dockerfile_base"] do
       sh "docker", "build", *args
     end
 
@@ -173,22 +134,19 @@ namespace :worker do
   end
 
 
+  task :test => "worker:test:build"
+
   namespace :test do
 
-    camhd_path = Pathname.new("../camhd_motion_analysis")
-
     desc "Builds a test docker image using a local copy of camhd_motion_analysis"
-    task :build => :base do
-      # chdir camhd_path.parent {
-      #   docker_path = Pathname.new("worker_docker/Dockerfile_rq_test").relative_path_from( camhd_path.parent )
-      #
+    task :build => ["worker:base:build", "deploy/Dockerfile_test"] do
+
       Dotenv.load('test.env')
-      #sh "git submodule update --init --recursive camhd_motion_analysis"
-      sh "docker", "build", "--tag", worker_image_test,
-                      "--file", "deploy/Dockerfile_test"
+      sh "docker", "build", "--tag", "#{worker_image}:test",
+              "--file", "deploy/Dockerfile_test", "."
     end
 
-    task :run do
+    task :run => :build do
       sh "docker", "run",  *%W{run --rm
                   --env-file test.env
                   --volume /home/aaron/canine/camhd_analysis/CamHD_motion_metadata:/output/CamHD_motion_metadata

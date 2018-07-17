@@ -7,10 +7,9 @@ RUN apt-get update && apt-get install --no-install-recommends --yes \
           libcurlpp-dev libcurl4-openssl-dev \
           libopencv-dev rake g++ cmake git \
           libboost-filesystem-dev libeigen3-dev libceres-dev \
-          bzip2 ca-certificates \
+          bzip2 ca-certificates libtclap-dev \
           libglib2.0-0 libxext6 libsm6 libxrender1 \
-          mercurial subversion && \
-    apt-get install --no-install-recommends --yes wget && \
+          mercurial subversion wget && \
     rm -rf /var/lib/apt/lists/*
 
 ## Use miniconda instead of system

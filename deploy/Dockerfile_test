@@ -8,5 +8,5 @@ ENV VERBOSE 1
 RUN ./fips set config linux-make-unittest
 RUN ./fips build
 
-ADD docker/launch_worker.sh  /code
+ADD deploy/launch_worker.sh  /code
 ENTRYPOINT ["/code/launch_worker.sh"]

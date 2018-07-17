@@ -11,5 +11,5 @@ RUN ./fips build
 
 VOLUME /output/CamHD_motion_metadata
 
-ADD docker/launch_worker.sh  /code/
+ADD deploy/launch_worker.sh  /code/
 ENTRYPOINT ["/code/launch_worker.sh"]
