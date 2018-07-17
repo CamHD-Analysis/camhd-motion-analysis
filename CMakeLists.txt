@@ -1,12 +1,10 @@
-cmake_minimum_required(VERSION 2.8.7)
-project(camhd_motion_tracking)
+cmake_minimum_required(VERSION 3.5)
+if( NOT FIPS_IMPORT )
+        get_filename_component(FIPS_ROOT_DIR "../fips" ABSOLUTE)
+        include("${FIPS_ROOT_DIR}/cmake/fips.cmake")
 
-set(CMAKE_PREFIX_PATH /usr)
-
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup()
-
-SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+        fips_setup(PROJECT camhd_motion_tracking)
+endif()
 
 ## Include Find*.cmake files provided with project.
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
@@ -40,8 +38,6 @@ add_compile_options(-std=c++11)
 
 ## Set global include paths
 set( CAMHD_MOTRACK_INCLUDE_DIRS
-	/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/
-	${CONAN_INCLUDE_DIR}
   ${CMAKE_SOURCE_DIR}/lib
 	${EIGEN3_INCLUDE_DIR}
   ${OpenCV_INCLUDE_DIRS}
@@ -52,7 +48,6 @@ include_directories( ${CAMHD_MOTRACK_INCLUDE_DIRS} )
 
 set( COMMON_LIBRARIES
       ${CURLPP_LIBRARY}
-      ${CONAN_LIBS}
       ${OpenCV_LIBRARIES}
       ${Boost_LIBRARIES}
 			${CERES_LIBRARIES}
@@ -73,12 +68,15 @@ if( USE_OPENMP )
 
 endif()
 
-add_subdirectory("lib/")
-add_subdirectory("tools/")
+fips_add_subdirectory("lib/")
 
-option( BUILD_UNIT_TESTS "Build unit tests" OFF )
-if( BUILD_UNIT_TESTS )
+if( NOT FIPS_IMPORT )
 
-  add_subdirectory( test/unit/ )
+        fips_add_subdirectory("tools/")
 
+        if( FIPS_UNITTESTS )
+          fips_add_subdirectory( test/unit/ )
+        endif()
+
+        fips_finish()
 endif()

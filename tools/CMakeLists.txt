@@ -11,37 +11,13 @@ set( TOOLS_LIBRARIES
   ${COMMON_LIBRARIES}
   )
 
-# add_executable(timelapse TimeLapse.cpp )
-# target_link_libraries( timelapse
-#             ${COMMON_LIBRARIES} )
-#
-#
-# add_executable(sequence Sequence.cpp )
-# target_link_libraries( sequence
-#             ${COMMON_LIBRARIES} )
 
+fips_begin_app( frame_stats cmdline )
 
-# add_executable(motrack motion_track.cpp )
-# target_link_libraries( motrack
-# ${TOOLS_LIBRARIES}
-# )
+  fips_files( frame_stats.cpp )
+  fips_deps( camhd )
 
-
-add_executable(frame_stats frame_stats.cpp )
-target_link_libraries( frame_stats
-  ${TOOLS_LIBRARIES}
- )
-#
-#  add_executable(annotate annotate.cpp )
-#  target_link_libraries( annotate
-#    ${TOOLS_LIBRARIES}
-#   )
-#
-#
-# add_executable(stitch stitch.cpp )
-# target_link_libraries( stitch
-#   ${TOOLS_LIBRARIES}
-#  )
+fips_end_app()
 
 
  install(TARGETS frame_stats
