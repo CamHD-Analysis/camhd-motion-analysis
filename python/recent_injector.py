@@ -30,6 +30,9 @@ parser.add_argument('--log', metavar='log', nargs='?', default='WARNING',
 parser.add_argument('--threads', metavar='j', type=int, nargs='?', default=1,
                     help='Number of threads to run with dask')
 
+parser.add_argument('--count', metavar='j', type=int, nargs='?',
+                    help='')
+
 parser.add_argument('--stride', metavar='s', type=int, nargs='?',
                     default=DEFAULT_STRIDE,
                     help='Stride for frame stats')
@@ -85,6 +88,8 @@ def daterange(start_date, end_date):
 
 q = Queue(connection=Redis.from_url(args.redis))
 
+
+num_queued = 0
 for single_date in daterange(start_date, datetime.now()):
     logging.info("Checking %s" % single_date.strftime("%Y-%m-%d"))
 
@@ -101,6 +106,11 @@ for single_date in daterange(start_date, datetime.now()):
         if os.path.isfile(outfile):
             logging.warning("Output file %s exists, skipping" % outfile)
             continue
+
+        num_queued += 1
+        if num_queued > 0 and num_queued > args.count:
+            logging.info("Reach maximum count of %d, stopping" % args.count)
+            break;
 
 
         if args.dryrun==True:
