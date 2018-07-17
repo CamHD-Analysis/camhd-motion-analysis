@@ -317,65 +317,76 @@ end
   #
   # end
 
+namespace :local do
 
-
-    namespace :desktop do
-
-      desc "Launch lazycache on the desktop cluster"
-      task :lazycache do
-        sh "docker service create --name lazycache --network #{network_name} -p 8080 #{lazycache_image_dockerhub}"
-      end
-
-      desc "Launch the optical flow worker on the desktop cluster"
-      task :worker do
-        sh "docker service create --env-file prod.env --name worker "\
-        "--network #{network_name} "\
-        "--mount type=volume,volume-opt=o=addr=192.168.13.110,volume-opt=device=:/mnt/zvol1/users/aaron/camhd_analysis/CamHD_motion_metadata/,volume-opt=type=nfs,source=camhd_motion_metadata_by_nfs,target=/output/CamHD_motion_metadata,volume-nocopy " \
-        "#{worker_image_dockerhub} --log INFO"
-      end
-
-    end
-
-
-  inject_path = ENV["INJECT_PATH"] || " /RS03ASHS/PN03B/06-CAMHDA301/2016/03/01/"
-
-  def do_inject(inject_path, network, image, lazycache)
-    Dotenv.load('conf/prod.env')
-
-    ## Use the public version
-    #" --lazycache-url http://#{lazycache}:8080/v1/org/oceanobservatories/rawdata/files" \
-
-    docker_run *%W{--rm --env-file conf/prod.env
-                 --entrypoint python3
-                 --network #{network}
-                 --volume camhd_motion_metadata_by_nfs:/output/CamHD_motion_metadata
-                 #{image}
-                 /code/camhd_motion_analysis/python/rq_job_injector.py
-                 --threads 16
-                 --log INFO
-                 --output-dir /output/CamHD_motion_metadata
-                 --client-lazycache-url #{PUBLIC_LAZYCACHE_URL}
-                 --lazycache-url #{LOCAL_LAZYCACHE_URL}
-                 #{inject_path} }
-  end
-
-  desc "Inject new jobs into the RQ queue; use the env variable INJECT_PATH"
+  ## Assumes you've done "docker-compose up"
   task :inject do
-    do_inject(inject_path, network_name, worker_image_dockerhub, lazycache_name)
+    sh "docker exec camhd-motion-analysis_camhd-worker_1 ./recent_injector.py  --days 1 --log INFO"
   end
 
-  inject_window = ENV["INJECT_WINDOW"].to_i || 1
 
-  desc "Inject recent jobs; set INJECT_WINDOW"
-  task :inject_recent do
 
-    (Date.today-inject_window).upto( Date.today ) { |date|
+end
 
-      path = "/RS03ASHS/PN03B/06-CAMHDA301/%04d/%02d/%02d/" % [date.year, date.month, date.mday]
-      puts path
-
-      do_inject(path, network_name, worker_image_dockerhub, lazycache_name)
-
-    }
-
-  end
+  #
+  #
+  #   namespace :desktop do
+  #
+  #     desc "Launch lazycache on the desktop cluster"
+  #     task :lazycache do
+  #       sh "docker service create --name lazycache --network #{network_name} -p 8080 #{lazycache_image_dockerhub}"
+  #     end
+  #
+  #     desc "Launch the optical flow worker on the desktop cluster"
+  #     task :worker do
+  #       sh "docker service create --env-file prod.env --name worker "\
+  #       "--network #{network_name} "\
+  #       "--mount type=volume,volume-opt=o=addr=192.168.13.110,volume-opt=device=:/mnt/zvol1/users/aaron/camhd_analysis/CamHD_motion_metadata/,volume-opt=type=nfs,source=camhd_motion_metadata_by_nfs,target=/output/CamHD_motion_metadata,volume-nocopy " \
+  #       "#{worker_image_dockerhub} --log INFO"
+  #     end
+  #
+  #   end
+  #
+  #
+  # inject_path = ENV["INJECT_PATH"] || " /RS03ASHS/PN03B/06-CAMHDA301/2016/03/01/"
+  #
+  # def do_inject(inject_path, network, image, lazycache)
+  #   Dotenv.load('conf/prod.env')
+  #
+  #   ## Use the public version
+  #   #" --lazycache-url http://#{lazycache}:8080/v1/org/oceanobservatories/rawdata/files" \
+  #
+  #   docker_run *%W{--rm --env-file conf/prod.env
+  #                --entrypoint python3
+  #                --network #{network}
+  #                --volume camhd_motion_metadata_by_nfs:/output/CamHD_motion_metadata
+  #                #{image}
+  #                /code/camhd_motion_analysis/python/rq_job_injector.py
+  #                --threads 16
+  #                --log INFO
+  #                --output-dir /output/CamHD_motion_metadata
+  #                --client-lazycache-url #{PUBLIC_LAZYCACHE_URL}
+  #                --lazycache-url #{LOCAL_LAZYCACHE_URL}
+  #                #{inject_path} }
+  # end
+  #
+  # desc "Inject new jobs into the RQ queue; use the env variable INJECT_PATH"
+  # task :inject do
+  #   do_inject(inject_path, network_name, worker_image_dockerhub, lazycache_name)
+  # end
+  #
+  # inject_window = ENV["INJECT_WINDOW"].to_i || 1
+  #
+  # desc "Inject recent jobs; set INJECT_WINDOW"
+  # task :inject_recent do
+  #
+  #   (Date.today-inject_window).upto( Date.today ) { |date|
+  #
+  #     path = "/RS03ASHS/PN03B/06-CAMHDA301/%04d/%02d/%02d/" % [date.year, date.month, date.mday]
+  #     puts path
+  #
+  #     do_inject(path, network_name, worker_image_dockerhub, lazycache_name)
+  #
+  #   }
+  #
+  # end

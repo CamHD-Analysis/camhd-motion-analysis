@@ -1,0 +1,26 @@
+#
+# docker-compose _strictly_ for local testing
+#
+version: '3'
+services:
+  lazycache:
+    image: amarburg/camhd_cache:latest
+    environment:
+      LAZYCACHE_ALLOW_RAW_OUTPUT: 'true'
+  redis:
+    image: bitnami/redis:latest
+    environment:
+      ALLOW_EMPTY_PASSWORD: 'yes'
+  camhd-worker:
+    build:
+      context: ./
+      dockerfile: deploy/Dockerfile_test
+    volumes:
+      - ../CamHD_motion_metadata:/output/CamHD_motion_metadata
+    depends_on:
+      - redis
+      - lazycache
+    environment:
+      RQ_REDIS_URL: redis://redis:6379/
+      RQ_LAZYCACHE_URL: http://lazycache:8080/v1/org/oceanobservatories/rawdata/files/
+      DELAY_START: 5
