@@ -5,13 +5,14 @@ WORKDIR /code
 RUN git clone https://github.com/CamHD-Analysis/camhd-motion-analysis.git
 
 WORKDIR /code/camhd-motion-analysis
-
 RUN ./fips set config linux-make-release
 RUN ./fips build
 
 WORKDIR /code/camhd-motion-analysis/python
 RUN ls -al
 RUN pip install -e .
+
+VOLUME /output/CamHD_motion_metadata
 
 ADD deploy/launch_worker.sh  /code/
 ENTRYPOINT ["/code/launch_worker.sh"]

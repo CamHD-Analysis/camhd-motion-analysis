@@ -11,5 +11,7 @@ RUN ./fips build
 WORKDIR /code/camhd-motion-analysis/python
 RUN pip install -e .
 
+VOLUME /output/CamHD_motion_metadata
+
 ADD deploy/launch_worker.sh  /code
 ENTRYPOINT ["/code/launch_worker.sh"]
