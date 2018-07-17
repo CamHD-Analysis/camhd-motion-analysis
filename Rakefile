@@ -109,8 +109,7 @@ namespace :worker do
     end
 
     task :push do
-      run "docker", "push", worker_image_dockerhub
-      sh "gcloud docker -- push #{worker_image_gcr}"
+      sh "docker", "push", "#{worker_image}:latest"
     end
 
   end
@@ -158,9 +157,9 @@ namespace :worker do
     task :run_prod_env do
       Dotenv.load('conf/prod.env')
       sh "docker run --rm --env-file conf/prod.env "\
-      " --network lazycache" \
-      " --volume camhd_motion_metadata_by_nfs:/output/CamHD_motion_metadata "\
-      " camhd_motion_analysis_rq_worker:test --log INFO"
+                " --network lazycache" \
+                " --volume camhd_motion_metadata_by_nfs:/output/CamHD_motion_metadata "\
+                " camhd_motion_analysis_rq_worker:test --log INFO"
     end
 
     desc "Inject a job using the test client"
@@ -169,16 +168,16 @@ namespace :worker do
 
       Dotenv.load('conf/test.env')
       sh "docker run --rm --env-file conf/test.env "\
-      " --entrypoint python3 "\
-      " --network lazycache" \
-      " --volume camhd_motion_metadata_by_nfs:/output/CamHD_motion_metadata" \
-      " camhd_motion_analysis_rq_worker:test"\
-      " /code/camhd_motion_analysis/python/rq_job_injector.py " \
-      " --log INFO" \
-      " --threads 16 " \
-      " --output-dir /output/CamHD_motion_metadata"\
-      " /RS03ASHS/PN03B/06-CAMHDA301/2016/02/01/"
-    end
+                " --entrypoint python3 "\
+                " --network lazycache" \
+                " --volume camhd_motion_metadata_by_nfs:/output/CamHD_motion_metadata" \
+                " camhd_motion_analysis_rq_worker:test"\
+                " /code/camhd_motion_analysis/python/rq_job_injector.py " \
+                " --log INFO" \
+                " --threads 16 " \
+                " --output-dir /output/CamHD_motion_metadata"\
+                " /RS03ASHS/PN03B/06-CAMHDA301/2016/02/01/"
+              end
 
   end
 
