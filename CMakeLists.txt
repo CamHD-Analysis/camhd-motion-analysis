@@ -17,7 +17,6 @@ if( USE_GPU )
 	list(APPEND OPENCV_COMPONENTS gpu )
 endif()
 
-
 find_package( CUDA )
 if( CUDA_VERSION )
 	message("Found CUDA version ${CUDA_VERSION}")
@@ -28,7 +27,7 @@ if( CUDA_VERSION )
   find_package( CUDA )
 endif()
 
-find_package(OpenCV 2.4 COMPONENTS ${OPENCV_COMPONENTS} REQUIRED)
+find_package(OpenCV COMPONENTS ${OPENCV_COMPONENTS} REQUIRED)
 find_package(Boost COMPONENTS filesystem system REQUIRED)
 find_package(Eigen3 REQUIRED )
 find_package(CURLpp REQUIRED )
@@ -72,11 +71,11 @@ fips_add_subdirectory("lib/")
 
 if( NOT FIPS_IMPORT )
 
-        fips_add_subdirectory("tools/")
+  fips_add_subdirectory("tools/")
 
-        if( FIPS_UNITTESTS )
-          fips_add_subdirectory( test/unit/ )
-        endif()
+  if( FIPS_UNITTESTS )
+    fips_add_subdirectory( test/unit/ )
+  endif()
 
-        fips_finish()
+  fips_finish()
 endif()

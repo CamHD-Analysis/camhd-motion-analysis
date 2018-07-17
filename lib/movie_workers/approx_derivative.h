@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include <string>
 
 #include <opencv2/core/core.hpp>
@@ -14,6 +15,7 @@
 namespace CamHDMotionTracking {
 
   using namespace ceres;
+  using std::vector;
 
   //=====
 

@@ -1,0 +1,13 @@
+FROM amarburg/camhd-worker-base:latest
+MAINTAINER Aaron Marburg <amarburg@apl.washington.edu>
+
+ADD . /code/camhd_motion_analysis
+WORKDIR /code/camhd_motion_analysis
+
+ENV VERBOSE 1
+
+RUN ./fips set config linux-make-unittest
+RUN ./fips build
+
+ADD docker/launch_worker.sh  /code
+ENTRYPOINT ["/code/launch_worker.sh"]

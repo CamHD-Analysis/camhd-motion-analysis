@@ -5,3 +5,6 @@ prod.env
 .AppleDouble/
 build-*/
 python/.cache/
+
+## fips temporary files
+.fips-*

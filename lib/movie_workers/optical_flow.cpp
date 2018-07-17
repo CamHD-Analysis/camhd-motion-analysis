@@ -16,6 +16,7 @@ namespace CamHDMotionTracking {
 
   using namespace ceres;
   using std::string;
+  using std::vector;
 
   //=====
 
