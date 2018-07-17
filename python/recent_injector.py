@@ -52,7 +52,6 @@ args = parser.parse_args()
 logging.basicConfig(level=args.log.upper())
 
 
-
 start_date = datetime.now() - timedelta(args.days)
 
 
@@ -86,9 +85,8 @@ def daterange(start_date, end_date):
 
 q = Queue(connection=Redis.from_url(args.redis))
 
-
 for single_date in daterange(start_date, datetime.now()):
-    print(single_date.strftime("%Y-%m-%d"))
+    logging.info("Checking %s" % single_date.strftime("%Y-%m-%d"))
 
     infiles = iterate_path( single_date.strftime("/RS03ASHS/PN03B/06-CAMHDA301/%Y/%m/%d/") )
 

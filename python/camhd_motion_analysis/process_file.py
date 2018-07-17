@@ -25,10 +25,10 @@ import time
 
 DEFAULT_STRIDE = 10
 
-DEFAULT_LAZYCACHE_HOST = "http://camhd-app-dev-nocache.appspot.com/v1/org/oceanobservatories/rawdata/files"
+DEFAULT_LAZYCACHE_HOST = "http://cache.camhd.science/v1/org/oceanobservatories/rawdata/files"
 #LAZYCACHE_HOST = "http://ursine:9080/v1/org/oceanobservatories/rawdata/files"
 
-def process_file( mov_path, output_path,
+def process_file( mov_path, output_path=None,
                 num_threads=1, start = 1, stop =-1,
                 lazycache_url = DEFAULT_LAZYCACHE_HOST,
                 stride = DEFAULT_STRIDE ):
@@ -54,10 +54,10 @@ def process_file( mov_path, output_path,
     start_time = time.time()
 
     if( num_threads > 1 ):
-        values = [delayed(ma.frame_stats)(mov_path,f, host=lazycache_url ) for f in frames]
+        values = [delayed(ma.frame_stats)(mov_path,f, lazycache=lazycache_url ) for f in frames]
         results = compute(*values, get=dask.threaded.get)
     else:
-        results = [ma.frame_stats(mov_path,f, host=lazycache_url) for f in frames ]
+        results = [ma.frame_stats(mov_path,f, lazycache=lazycache_url) for f in frames ]
 
     end_time = time.time()
 
@@ -81,12 +81,13 @@ def process_file( mov_path, output_path,
                                           "cpu":  info['brand'] } }
 
 
-    os.makedirs( os.path.dirname( output_path ), exist_ok = True )
+    if output_path:
+        os.makedirs( os.path.dirname( output_path ), exist_ok = True )
 
-    logging.info("Saving results to %s" % output_path )
+        logging.info("Saving results to %s" % output_path )
 
-    with open(output_path,'w') as f:
-        json.dump(joutput, f, indent=2)
+        with open(output_path,'w') as f:
+            json.dump(joutput, f, indent=2)
 
 
     return joutput
