@@ -9,6 +9,8 @@ from redis import Redis
 from rq import Connection, Worker
 
 
+## Entrypoint for starting a new RQ worker
+
 # There's actually (basically) nothing specific about the worker, though the
 # Python environment needs to be configured properly.
 

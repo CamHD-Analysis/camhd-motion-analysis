@@ -19,7 +19,7 @@ RUN echo 'export PATH=/opt/conda/bin:$PATH' > /etc/profile.d/conda.sh && \
     rm /tmp/miniconda.sh
 ENV PATH /opt/conda/bin:$PATH
 
-RUN conda install setuptools wheel pillow redis numpy dask cytoolz numpy
+RUN conda install python=3.6 setuptools wheel pillow redis numpy dask cytoolz numpy cython
 RUN pip install --upgrade pip
 RUN pip install conan rq py-cpuinfo
 

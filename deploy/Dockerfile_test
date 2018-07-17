@@ -8,5 +8,8 @@ ENV VERBOSE 1
 RUN ./fips set config linux-make-unittest
 RUN ./fips build
 
+WORKDIR /code/camhd_motion_analysis/python
+RUN pip install -e .
+
 ADD deploy/launch_worker.sh  /code
 ENTRYPOINT ["/code/launch_worker.sh"]
