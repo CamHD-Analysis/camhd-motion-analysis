@@ -2,6 +2,3 @@
   path = thirdparty/json
   url =  https://github.com/nlohmann/json.git
   shallow = true
-[submodule "thirdparty/json"]
-	path = thirdparty/json
-	url = https://github.com/nlohmann/json.git

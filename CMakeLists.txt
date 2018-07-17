@@ -42,7 +42,7 @@ set( CAMHD_MOTRACK_INCLUDE_DIRS
   ${OpenCV_INCLUDE_DIRS}
 	${CURLPP_INCLUDE_DIRS}
 	${CERES_INCLUDE_DIRS}
-  ${CMAKE_SOURCE_DIR}/thirdparty/json/src )
+  ${CMAKE_SOURCE_DIR}/thirdparty/json )
 include_directories( ${CAMHD_MOTRACK_INCLUDE_DIRS} )
 
 set( COMMON_LIBRARIES

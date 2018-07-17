@@ -17,7 +17,7 @@ namespace CamHDMotionTracking {
   using namespace std;
 
   HTTPRequest::HTTPRequest( const string &url )
-    : _url(url), _result()
+    :  _result(), _url(url)
   {
   }
 
@@ -99,7 +99,7 @@ HTTPResult HTTPRequest::Get( const string &url )
 
   //=================================================
   HTTPResult::HTTPResult( )
-    :body(), httpStatus(0)
+    : httpStatus(0), body()
   {}
 
 
