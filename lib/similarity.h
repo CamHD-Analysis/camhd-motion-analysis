@@ -33,9 +33,10 @@ namespace CamHDMotionTracking {
   struct CalculatedSimilarity : public Similarity {
 
     CalculatedSimilarity()
-    : valid(false), center( Vec2d(0,0) ),
+    : center( Vec2d(0,0) ),
       imgScale(0.0), flowScale(0.0),
-      fromFrame(0), toFrame(0)
+      fromFrame(0), toFrame(0),
+      valid(false)
     {;}
 
     CalculatedSimilarity &setSimilarity( double sc, double th, const cv::Vec2d &t )

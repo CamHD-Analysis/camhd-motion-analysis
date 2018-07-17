@@ -21,8 +21,8 @@ namespace CamHDMotionTracking {
 
   struct FrameProcessor {
     FrameProcessor( const CamHDMovie &mov )
-    : _movie(mov),
-      doDisplay( false )
+    : doDisplay( false ),
+      _movie(mov)
     {;}
 
     virtual const string jsonName() = 0;
