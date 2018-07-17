@@ -13,20 +13,20 @@ namespace CamHDMotionTracking {
 
   // Default constructor
   CamHDMovie::CamHDMovie( void )
-    : _cacheUrl(), _originalUrl(), _numFrames(0), _duration(0.0), _initialized(false)
+    : _cacheUrl(), _originalUrl(), _duration(0.0), _numFrames(0), _initialized(false)
     {
     }
 
   // Copy constructor
   CamHDMovie::CamHDMovie( const CamHDMovie &other )
     : _cacheUrl( other.cacheUrl() ), _originalUrl( other.originalUrl() ),
-      _numFrames( other.numFrames() ), _duration( other.duration() ), _initialized(true)
+      _duration( other.duration() ), _numFrames( other.numFrames() ), _initialized(true)
   {
     ;
   }
 
     CamHDMovie::CamHDMovie( const string &url, const string &jsonStr )
-      : _cacheUrl( url ), _originalUrl(), _numFrames(0), _duration(0.0), _initialized(false)
+      : _cacheUrl( url ), _originalUrl(), _duration(0.0), _numFrames(0), _initialized(false)
     {
       if( jsonStr.size() > 0 ) {
         json j = json::parse( jsonStr );

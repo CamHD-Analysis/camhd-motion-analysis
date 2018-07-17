@@ -1,14 +1,14 @@
 FROM amarburg/camhd-worker-base:latest
 MAINTAINER Aaron Marburg <amarburg@apl.washington.edu>
 
-ADD . /code/camhd_motion_analysis
-WORKDIR /code/camhd_motion_analysis
+ADD . /code/camhd-motion-analysis
+WORKDIR /code/camhd-motion-analysis
 
 ENV VERBOSE 1
 RUN ./fips set config linux-make-unittest
 RUN ./fips build
 
-WORKDIR /code/camhd_motion_analysis/python
+WORKDIR /code/camhd-motion-analysis/python
 RUN pip install -e .
 
 ADD deploy/launch_worker.sh  /code

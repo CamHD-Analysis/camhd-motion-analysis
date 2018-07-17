@@ -9,7 +9,8 @@ WORKDIR /code/camhd-motion-analysis
 RUN ./fips set config linux-make-release
 RUN ./fips build
 
-WORKDIR /code/camhd_motion_analysis/python
+WORKDIR /code/camhd-motion-analysis/python
+RUN ls -al
 RUN pip install -e .
 
 ADD deploy/launch_worker.sh  /code/
