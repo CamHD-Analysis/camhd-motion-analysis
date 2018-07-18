@@ -4,11 +4,20 @@ import argparse
 import os.path
 import json
 
+import io
+
 import logging
 import platform
 
 import cpuinfo
 from datetime import datetime
+
+import minio
+from decouple import config
+from urllib.parse import urlparse
+
+from minio import Minio
+from minio.error import ResponseError
 
 # import pycamhd.lazycache as pycamhd
 #
@@ -28,7 +37,7 @@ DEFAULT_STRIDE = 10
 DEFAULT_LAZYCACHE_HOST = "http://cache.camhd.science/v1/org/oceanobservatories/rawdata/files"
 #LAZYCACHE_HOST = "http://ursine:9080/v1/org/oceanobservatories/rawdata/files"
 
-def process_file( mov_path, output_path=None,
+def process_file( mov_path, destination=config('OUTPUT_DEST',"s3://minio/CamHD_motion_metadata/"),
                 num_threads=1, start = 1, stop =-1,
                 lazycache_url = DEFAULT_LAZYCACHE_HOST,
                 stride = DEFAULT_STRIDE ):
@@ -81,13 +90,45 @@ def process_file( mov_path, output_path=None,
                                           "cpu":  info['brand'] } }
 
 
-    if output_path:
-        os.makedirs( os.path.dirname( output_path ), exist_ok = True )
+    if destination:
 
-        logging.info("Saving results to %s" % output_path )
+        o = urlparse(destination)
 
-        with open(output_path,'w') as f:
-            json.dump(joutput, f, indent=2)
+        if o.scheme == 's3' or o.scheme=="http" or o.scheme=="https":
+            logging.info("Saving to S3 location %s" % destination)
+
+            client = Minio(o.netloc,
+                            access_key=config('S3_ACCESS_KEY','camhd'),
+                            secret_key=config('S3_SECRET_KEY','camhdcamhd'),
+                            secure=False)
+
+            jbytes = bytes(json.dumps(joutput, indent=2), encoding='utf-8')
+
+            print(o.path)
+            split_path = o.path.lstrip("/").split("/")
+
+            bucket = split_path[0]
+            path = '/'.join(split_path[1:])
+
+            print("Saving to bucket %s as %s" % (bucket,path))
+
+            if not client.bucket_exists(bucket):
+                client.make_bucket(bucket)
+
+            with io.BytesIO(jbytes) as data:
+                client.put_object(bucket,path,
+                                    data, len(jbytes) )
+
+        else:
+            ## Assume it's a path
+            logging.info("Saving to path %s" % o.path)
+
+            os.makedirs( os.path.dirname( o.path ), exist_ok = True )
+
+            logging.info("Saving results to %s" % o.path )
+
+            with open(o.path,'w') as f:
+                json.dump(joutput, f, indent=2)
 
 
     return joutput

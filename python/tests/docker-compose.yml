@@ -1,0 +1,40 @@
+#
+# docker-compose runs a local one-worker cluster.   Good for testing
+#
+version: '3'
+services:
+  # lazycache:
+  #   image: amarburg/camhd_cache:latest
+  #   environment:
+  #     LAZYCACHE_ALLOW_RAW_OUTPUT: 'true'
+
+  # redis:
+  #   image: bitnami/redis:latest
+  #   environment:
+  #     ALLOW_EMPTY_PASSWORD: 'yes'
+
+  # camhd-worker:
+  #   build:
+  #     context: ./
+  #     dockerfile: deploy/Dockerfile_test
+  #   volumes:
+  #     - ../CamHD_motion_metadata:/output/CamHD_motion_metadata
+  #   depends_on:
+  #     - redis
+  #     - lazycache
+  #   environment:
+  #     RQ_REDIS_URL: redis://redis:6379/
+  #     RQ_LAZYCACHE_URL: http://lazycache:8080/v1/org/oceanobservatories/rawdata/files/
+  #     DELAY_START:  5
+
+  minio:
+    image: minio/minio
+    volumes:
+      - ../test_tmp/:/data
+      - ../test_tmp/dot-minio:/root/.minio
+    command: server /data
+    ports:
+      - "9100:9000"
+    environment:
+      MINIO_ACCESS_KEY: camhd
+      MINIO_SECRET_KEY: camhdcamhd

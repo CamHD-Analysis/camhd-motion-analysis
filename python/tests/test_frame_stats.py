@@ -1,5 +1,6 @@
 
 from camhd_motion_analysis import frame_stats
+from check_json_file import check_json
 
 mov_path = 'RS03ASHS/PN03B/06-CAMHDA301/2018/07/01/CAMHDA301-20180701T001500.mov'
 

@@ -9,5 +9,8 @@ setup(name='camhd_motion_analysis',
       license='MIT',
       packages=['camhd_motion_analysis'],
       scripts=['rq_worker.py', 'rq_job_injector.py'],
-      install_requires=['py-cpuinfo'],
+      install_requires=['py-cpuinfo','minio','python-decouple'],
+        extras_require={
+            'test':  ["pytest-docker"],
+        },
       zip_safe=False)

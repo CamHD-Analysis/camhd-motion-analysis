@@ -9,7 +9,7 @@ RUN ./fips set config linux-make-unittest
 RUN ./fips build
 
 WORKDIR /code/camhd-motion-analysis/python
-RUN pip install -e .
+RUN pip install -e .[test]
 
 VOLUME /output/CamHD_motion_metadata
 
