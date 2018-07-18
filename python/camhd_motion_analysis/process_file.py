@@ -3,6 +3,7 @@
 import argparse
 import os.path
 import json
+import re
 
 import io
 
@@ -104,13 +105,13 @@ def process_file( mov_path, destination=config('OUTPUT_DEST',"s3://minio/CamHD_m
 
             jbytes = bytes(json.dumps(joutput, indent=2), encoding='utf-8')
 
-            print(o.path)
-            split_path = o.path.lstrip("/").split("/")
+            ## This should handle repeated slashes in path...
+            split_path = re.split(r'/*', o.path.lstrip("/"))
 
             bucket = split_path[0]
             path = '/'.join(split_path[1:])
 
-            print("Saving to bucket %s as %s" % (bucket,path))
+            logging.warning("Saving to bucket %s as %s" % (bucket,path))
 
             if not client.bucket_exists(bucket):
                 client.make_bucket(bucket)
