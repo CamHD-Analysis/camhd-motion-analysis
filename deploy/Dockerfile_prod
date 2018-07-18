@@ -9,7 +9,6 @@ RUN ./fips set config linux-make-release
 RUN ./fips build
 
 WORKDIR /code/camhd-motion-analysis/python
-RUN ls -al
 RUN pip install -e .
 
 VOLUME /output/CamHD_motion_metadata
