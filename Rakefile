@@ -88,9 +88,23 @@ namespace :worker do
 
   namespace :prod do
 
+    task :git_check do
+      uncommitted = `git status --porcelain --untracked-files=no`
+
+      p uncommitted
+
+      branch = `git status --porcelain --branch --untracked-files=no`
+      p branch
+    end
+
+    ## TODO.  Add warning if I have uncommited changes and/or
+    ## I'm ahead of origin/master, since prod uses origin/master!
+
     # Builds the "production" worker image.  This includes a pristine checkout of
     # camhd_motion_analysis from github
-    task :build=> ["worker:base:build", "deploy/Dockerfile_prod"] do
+    task :build=> ["worker:prod:git_check", "worker:base:build", "deploy/Dockerfile_prod"] do
+
+
         sh "docker", "build", "--no-cache",
                       "--tag", "#{worker_image}:latest",
                       "--tag", "#{worker_image}:#{`git rev-parse --short HEAD`.chomp}",
@@ -108,7 +122,7 @@ namespace :worker do
                      #{worker_image_dockerhub} --log INFO }
     end
 
-    task :push do
+    task :push => :build do
       sh "docker", "push", "#{worker_image}:latest"
     end
 
