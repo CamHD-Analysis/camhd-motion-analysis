@@ -4,7 +4,6 @@ import argparse
 import os.path
 import json
 import re
-import filter
 
 import io
 
