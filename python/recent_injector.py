@@ -10,8 +10,13 @@ import os.path
 import re
 
 import logging
+from decouple import config
 
 import pycamhd.lazycache as pycamhd
+from urllib.parse import urlparse
+
+from minio import Minio
+from minio.error import ResponseError,NoSuchBucket,NoSuchKey
 
 import camhd_motion_analysis as ma
 
@@ -100,17 +105,46 @@ for single_date in daterange(start_date, datetime.now()):
         continue
 
     for infile in infiles:
-        outfile = os.path.splitext(args.outdir + infile)[0] + "_optical_flow.json"
-        logging.info("Processing %s, Saving results to %s" % (infile, outfile))
+        destination = os.path.splitext(args.outdir + infile)[0] + "_optical_flow.json"
 
-        if os.path.isfile(outfile):
-            logging.warning("Output file %s exists, skipping" % outfile)
-            continue
+        logging.info("Processing %s, Saving results to %s" % (infile, destination))
+
+        ## Need to reduce DRY with process_file.py
+
+        o = urlparse(destination)
+
+        ## TODO.  This could be done more efficently with minio.list_objects
+        if o.scheme == 's3' or o.scheme=="http" or o.scheme=="https":
+            logging.info("Checking S3 location %s" % destination)
+
+            client = Minio(o.netloc,
+                            access_key=config('S3_ACCESS_KEY','camhd'),
+                            secret_key=config('S3_SECRET_KEY','camhdcamhd'),
+                            secure=False)
+
+            split_path = o.path.lstrip("/").split("/")
+
+            bucket = split_path[0]
+            path = '/'.join(split_path[1:])
+
+            try:
+                client.stat_object(bucket,path)
+                continue
+            except NoSuchKey as err:
+                # Distinguish between connection error and file not present
+                pass
+
+        else:
+            ## Assume it's a path
+
+            if os.path.isfile(destination):
+                logging.warning("Output file %s exists, skipping" % destination)
+                continue
 
         num_queued += 1
-        if num_queued > 0 and num_queued > args.count:
+        if args.count and num_queued > args.count:
             logging.info("Reach maximum count of %d, stopping" % args.count)
-            break;
+            break
 
 
         if args.dryrun==True:
@@ -118,7 +152,7 @@ for single_date in daterange(start_date, datetime.now()):
 
         job = q.enqueue(ma.process_file,
                         infile,
-                        outfile,
+                        destination=destination,
                         lazycache_url=args.lazycache,
                         num_threads=args.threads,
                         stride=args.stride,

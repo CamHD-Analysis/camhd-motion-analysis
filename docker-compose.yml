@@ -13,12 +13,11 @@ services:
     environment:
       ALLOW_EMPTY_PASSWORD: 'yes'
 
+  ## Build local version for testing
   camhd-worker:
     build:
       context: ./
       dockerfile: deploy/Dockerfile_test
-    volumes:
-      - ../CamHD_motion_metadata:/output/CamHD_motion_metadata
     depends_on:
       - redis
       - lazycache
@@ -30,7 +29,10 @@ services:
   minio:
     image: minio/minio
     volumes:
-      - ../CamHD_motion_metadata:/data
+      - ..:/data
+    command: ["server", "/data"]
+    ports:
+      - "9200:9000"
     environment:
       MINIO_ACCESS_KEY: camhd
       MINIO_SECRET_KEY: camhdcamhd
