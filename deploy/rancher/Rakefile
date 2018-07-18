@@ -1,0 +1,10 @@
+
+
+namespace :prod do
+
+  task :upgrade do
+    sh "rancher up --stack camhd-analysis-prod -d --upgrade --prune"
+  end
+
+
+end

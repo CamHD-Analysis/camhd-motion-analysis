@@ -8,6 +8,8 @@ pipeline:
       - docker build -t amarburg/camhd-worker-base --file deploy/Dockerfile_base .
       - docker build --no-cache -t amarburg/camhd-worker:latest -t amarburg/camhd-worker:${DRONE_REPO_OWNER}-latest -t amarburg/camhd-worker:${DRONE_REPO_OWNER}-${DRONE_COMMIT_SHA} --file deploy/Dockerfile_prod .
 
+  ## Need to run python tests in docker image.  How to do that with drone services versus pytest-docker
+
   slack:
     image: plugins/slack
     secrets: [ slack_webhook ]

@@ -1,0 +1,96 @@
+version: '2'
+volumes:
+  camhd-minio:
+    driver_opts:
+      export: /mnt/zvol1/projects/camhd/minio
+      host: nas.san.apl.washington.edu
+    driver: rancher-nfs
+  camhd-dot-minio:
+    driver_opts:
+      export: /mnt/zvol1/projects/camhd/dot-minio
+      host: nas.san.apl.washington.edu
+    driver: rancher-nfs
+
+secrets:
+  camhd-minio-secret-key:
+    external: 'true'
+
+services:
+  rq-dashboard:
+    image: amarburg/rq-dashboard
+    ports:
+    - 9181:9181/tcp
+    command:
+    - -H
+    - redis
+    labels:
+      io.rancher.container.pull_image: always
+
+  lazycache:
+    image: amarburg/go-lazycache:latest
+    environment:
+      LAZYCACHE_ALLOW_RAW_OUTPUT: 'true'
+    labels:
+      io.rancher.scheduler.affinity:host_label: labor=true
+      io.rancher.container.pull_image: always
+      io.rancher.scheduler.global: 'true'
+
+  camhd-worker:
+    image: amarburg/camhd-worker:latest
+    environment:
+      RQ_REDIS_URL: redis://redis:6379/
+      RQ_LAZYCACHE_URL: http://lazycache:4080/v1/org/oceanobservatories/rawdata/files/
+    volumes:
+    - CamHD_motion_metadata:/output/CamHD_motion_metadata
+    labels:
+      io.rancher.scheduler.affinity:host_label: labor=true
+      io.rancher.container.pull_image: always
+      io.rancher.scheduler.global: 'true'
+
+  minio:
+    image: minio/minio:latest
+    stdin_open: true
+    volumes:
+    - camhd-minio:/data
+    - camhd-dot-minio:/root/.minio
+    environment:
+      MINIO_ACCESS_KEY: 'camhd'
+      MINIO_SECRET_KEY_FILE: '/run/secrets/camhd-minio-secret-key'
+    tty: true
+    command: ["server", "/data"]
+    labels:
+      io.rancher.scheduler.affinity:container_label_soft_ne: io.rancher.stack_service.name=$${stack_name}/$${service_name}
+      io.rancher.container.pull_image: always
+      io.rancher.scheduler.affinity:host_label_soft: in314=true
+    secrets:
+    - mode: '0444'
+      uid: '0'
+      gid: '0'
+      source: camhd-minio-secret-key
+      target: camhd-minio-secret-key
+
+  redis:
+    image: bitnami/redis:latest
+    environment:
+      ALLOW_EMPTY_PASSWORD: 'yes'
+    labels:
+      io.rancher.container.pull_image: always
+
+  camhd-injector:
+    image: amarburg/camhd-worker:latest
+    environment:
+      RQ_REDIS_URL: redis://redis:6379/
+      RQ_LAZYCACHE_URL: http://lazycache:4080/v1/org/oceanobservatories/rawdata/files/
+      OUTPUT_DIR: s3://minio:9000/CamHD_motion_metadata/
+    stdin_open: true
+    entrypoint:
+    - python3
+    volumes:
+    - CamHD_motion_metadata:/output/CamHD_motion_metadata
+    tty: true
+    command: ["/code/camhd_motion_analysis/python/recent_injector.py", "--days", 120", "--log", "INFO", "--threads", "16"]
+    labels:
+      io.rancher.scheduler.affinity:host_label: labor=true
+      io.rancher.container.start_once: 'true'
+      io.rancher.container.pull_image: always
+      cron.schedule: 0 0 1 * * ?
