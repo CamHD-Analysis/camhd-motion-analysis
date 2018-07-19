@@ -117,8 +117,6 @@ for single_date in daterange(start_date, datetime.now()):
     for infile in infiles:
         destination = os.path.splitext(args.outdir + infile)[0] + "_optical_flow.json"
 
-        logging.info("Processing %s, Saving results to %s" % (infile, destination))
-
         ## Need to reduce DRY with process_file.py
 
         o = urlparse(destination)
@@ -139,9 +137,11 @@ for single_date in daterange(start_date, datetime.now()):
 
             try:
                 client.stat_object(bucket,path)
+                logging.info("%s exists in S3, skipping" % path)
                 continue
             except NoSuchKey as err:
                 # Distinguish between connection error and file not present
+                logging.info("Can't find path %s in bucket %s, processing" % (path,bucket))
                 pass
 
         else:
@@ -156,6 +156,7 @@ for single_date in daterange(start_date, datetime.now()):
             logging.info("Reach maximum count of %d, stopping" % args.count)
             break
 
+        logging.info("Processing %s, Saving results to %s" % (infile, destination))
 
         if args.dryrun==True:
             continue
