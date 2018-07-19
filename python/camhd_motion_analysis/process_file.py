@@ -73,10 +73,11 @@ def process_file( mov_path, destination=config('OUTPUT_DEST',"s3://minio/CamHD_m
 
     joutput = None
     for result in results:
-        if not joutput:
-            joutput = result
-        else:
-            joutput["frameStats"].extend(result["frameStats"])
+        if "frameStats" in result:
+            if not joutput:
+                joutput = result
+            else:
+                joutput["frameStats"].extend(result["frameStats"])
 
     endTime = datetime.now();
 
