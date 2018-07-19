@@ -1,0 +1,77 @@
+
+class GCloudConfig
+  attr_accessor :region, :name
+
+  def initialize( name, args = {} )
+    @region = args[:region] || 'us-central'
+
+    @name = name
+  end
+
+  def url
+    "http://#{name}.appspot.com/"
+  end
+end
+
+
+
+# namespace :prod do
+#
+#   config = GCloudConfig.new( 'camhd-cache' )
+#
+#   task :create  do
+#     sh "gcloud --project=#{config.name} app create --region=#{config.region}"
+#   end
+#
+#   task :deploy  do
+#     ## Use the common Dockerfile
+#     sh "cp ../docker/Dockerfile nocache/"
+#     sh "gcloud --project=#{config.name} app deploy --stop-previous-version nocache/app.yaml"
+#   end
+#
+#   task :open do
+#     sh "open #{config.url()}"
+#   end
+#
+# end
+#
+#
+# namespace :dev do
+#
+#   config = GCloudConfig.new( 'camhd-cache-dev' )
+#
+#   # task :activate do
+#   #   sh *%W( gcloud config configurations activate #{camhd_app_dev.config} )
+#   # end
+#
+#   task :create  do
+#     sh "gcloud --project=#{config.name} app create --region=#{config.region}"
+#   end
+#
+#   task :deploy  do
+#     sh "cp ../docker/Dockerfile nocache/"
+#     sh "gcloud --project=#{config.name} app deploy --stop-previous-version nocache/app.yaml"
+#   end
+#
+#   task :open do
+#     sh "open #{config.url()}"
+#   end
+#
+# end
+
+
+## Installs the "forwarder" app to our legacy app endpoints
+namespace :forwarder do
+
+  configs = [ GCloudConfig.new( 'camhd-app-dev-nocache' ),
+              GCloudConfig.new( 'camhd-app-dev' ),
+              GCloudConfig.new( 'camhd-cache-dev' ),
+              GCloudConfig.new( 'camhd-cache' ) ]
+
+  task :deploy  do
+    configs.each { |config|
+      sh "gcloud --project=#{config.name} app deploy --stop-previous-version forwarder/redirector.yaml forwarder/dispatch.yaml"
+    }
+  end
+
+end

@@ -1,0 +1,11 @@
+runtime: python27
+threadsafe: true
+api_version: 1
+
+skip_files:
+  - ^(?!redirector.py$)
+
+handlers:
+  # Redirect everything via our redirector
+  - url: /.*
+    script: redirector.app

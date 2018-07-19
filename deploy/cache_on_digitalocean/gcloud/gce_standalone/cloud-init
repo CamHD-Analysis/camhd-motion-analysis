@@ -1,0 +1,30 @@
+#cloud-config
+
+users:
+- name: lazycache
+  uid: 2000
+  groups: docker
+
+write_files:
+- path: /etc/systemd/system/lazycache.service
+  permissions: 0644
+  owner: root
+  content: |
+    [Unit]
+    Description=Start the lazycache service in a docker container
+
+    [Service]
+    User=lazycache
+    Environment='IMAGE_NAME=lazycache'
+    Environment='HOME=/home/lazycache'
+    Environment='DOCKER_OPTS=-u 2000 --publish 80:8080 --name=$IMAGE_NAME'
+    Environment='DOCKER_CMD=-bind 0.0.0.0 -port 8080 -image-store google -image-store-bucket ooi-camhd-analytics'
+    ExecStartPre=/usr/share/google/dockercfg_update.sh
+    ExecStartPre=/usr/bin/docker pull gcr.io/smiling-gasket-155322/lazycache-deploy:latest
+    ExecStart=/usr/bin/docker run --rm $DOCKER_OPTS gcr.io/smiling-gasket-155322/lazycache-deploy:latest $DOCKER_CMD
+    ExecStop=/usr/bin/docker stop $IMAGE_NAME
+    ExecStopPost=/usr/bin/docker rm $IMAGE_NAME
+
+runcmd:
+- systemctl daemon-reload
+- systemctl start lazycache.service

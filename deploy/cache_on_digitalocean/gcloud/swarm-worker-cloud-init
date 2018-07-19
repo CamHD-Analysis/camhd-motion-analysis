@@ -1,0 +1,30 @@
+#cloud-config
+
+## Necessary for successful NFS mounts...
+write-files:
+  - path: /etc/conf.d/nfs
+    permissions: '0644'
+    content: |
+      OPTS_RPC_MOUNTD=""
+
+coreos:
+  units:
+    - name: rpc-statd.service
+      command: start
+      enable: true
+
+    ## Leading dash on "docker swarm leave" should mean "ignore exit code"
+    - name: connect-to-docker-swarm.service
+      command: start
+      content: |
+        [Unit]
+        Description=Connect to the docker swarm master
+
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/bin/bash -c "/usr/bin/systemctl set-environment DOCKER_SWARM_TOKEN=$(curl \"http://metadata.google.internal/computeMetadata/v1/project/attributes/docker_swarm_token\" -H \"Metadata-Flavor: Google\")"
+        ExecStart=-/usr/bin/docker swarm leave --force
+        ExecStart=/usr/bin/docker swarm join --token ${DOCKER_SWARM_TOKEN} swarm-manager:2377
+
+        [Unit]
+        Requires=docker.socket

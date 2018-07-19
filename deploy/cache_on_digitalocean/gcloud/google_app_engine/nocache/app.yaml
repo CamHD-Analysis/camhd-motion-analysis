@@ -1,0 +1,19 @@
+runtime: custom
+env: flex
+service: default
+
+env_variables:
+
+resources:
+  cpu: 1
+  memory_gb: 2
+
+health_check:
+  enable_health_check: True
+
+automatic_scaling:
+  min_num_instances: 1
+  max_num_instances: 4
+  cool_down_period_sec: 120 # default value
+  cpu_utilization:
+    target_utilization: 0.75

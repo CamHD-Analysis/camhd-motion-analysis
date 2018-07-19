@@ -1,0 +1,41 @@
+
+TagName = "latest"
+RepoName = "amarburg/lazycache-deploy"
+TaggedName = "%s:%s"  % [RepoName,TagName]
+
+GoogleProjectId = "smiling-gasket-155322"
+GoogleRepo = "gcr.io/%s/lazycache-deploy" % GoogleProjectId
+GoogleTag = "%s:%s" % [GoogleRepo, TagName]
+
+namespace :docker do
+
+  task :build do
+    sh "docker build --tag %s --no-cache ." % tagged_name
+  end
+
+  namespace :push do
+
+    task :docker_hub do
+    sh "docker push amarburg/lazycache-deploy"
+  end
+
+  task :google do
+    sh "docker tag %s %s" % [TaggedName, GoogleTag]
+    sh "gcloud docker -- push %s" % GoogleTag
+  end
+
+end
+
+end
+
+task :deploy do
+  sh "gcloud compute instances create go-lazycache " \
+        "--image-family cos-stable " \
+        "--image-project cos-cloud " \
+        "--address go-lazycache " \
+        "--metadata-from-file user-data=cloud-init " \
+        "--tags http-server " \
+        "--zone us-west1-a " \
+        "--scopes default,storage-full"
+        "--machine-type n1-standard-1"
+end
