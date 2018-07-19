@@ -16,6 +16,7 @@ pipeline:
     repo: amarburg/covis-worker-base
     tags:
       - latest
+    secrets: [ docker_username, docker_password ]
 
   build_prod:
     image: plugins/docker
@@ -27,6 +28,7 @@ pipeline:
       - latest
       - ${DRONE_REPO_OWNER}-latest
       - ${DRONE_REPO_OWNER}-${DRONE_COMMIT_SHA}
+    secrets: [ docker_username, docker_password ]
   ## Need to run python tests in docker image.  How to do that with drone services versus pytest-docker
 
   slack:
