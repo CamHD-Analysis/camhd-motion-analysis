@@ -34,9 +34,7 @@ import dask.multiprocessing
 import time
 
 DEFAULT_STRIDE = 10
-
 DEFAULT_LAZYCACHE_HOST = "http://cache.camhd.science/v1/org/oceanobservatories/rawdata/files"
-#LAZYCACHE_HOST = "http://ursine:9080/v1/org/oceanobservatories/rawdata/files"
 
 def process_file( mov_path, destination=config('OUTPUT_DEST',"s3://minio/CamHD_motion_metadata/"),
                 num_threads=1, start = 1, stop =-1,
@@ -53,10 +51,6 @@ def process_file( mov_path, destination=config('OUTPUT_DEST',"s3://minio/CamHD_m
         repo = pycamhd.lazycache( lazycache_url )
         movie_info = repo.get_metadata( url=mov_path, timeout=120 )
         stop = movie_info['NumFrames']
-
-    # if os.path.isfile( output_path ):
-    #     logging.warning("File %s exists, skipping" % output_path )
-    #     return
 
     logging.info("Processing %s from %d to %d by %d in %d threads" % (mov_path, start, stop, stride, num_threads))
     frames = range( start, stop, stride )
@@ -86,8 +80,8 @@ def process_file( mov_path, destination=config('OUTPUT_DEST',"s3://minio/CamHD_m
     info = cpuinfo.get_cpu_info()
 
     joutput["performance"] = {"timing": { "elapsedSeconds":  (end_time - start_time),
-                                            "startTime" : str(startTime),
-                                            "endTime" : str(endTime) },
+                                          "startTime" : str(startTime),
+                                          "endTime" : str(endTime) },
                                           "hostinfo" : {"hostname": platform.node(),
                                           "cpu":  info['brand'] } }
 
@@ -107,13 +101,13 @@ def process_file( mov_path, destination=config('OUTPUT_DEST',"s3://minio/CamHD_m
             jbytes = bytes(json.dumps(joutput, indent=2), encoding='utf-8')
 
             ## This should handle repeated slashes in path...
-            split_path = re.split(r'/*', o.path.lstrip("/"))
+            split_path = re.split(r'/+', o.path.lstrip("/"))
             split_path = list(filter(len, split_path))
 
             bucket = split_path[0]
             path = '/'.join(split_path[1:])
 
-            logging.warning("Saving to bucket %s as %s" % (bucket,path))
+            logging.info("Saving to bucket %s as %s" % (bucket,path))
 
             if not client.bucket_exists(bucket):
                 client.make_bucket(bucket)

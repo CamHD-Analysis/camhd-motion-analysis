@@ -1,5 +1,5 @@
 #
-# docker-compose runs a local one-worker cluster.   Good for testing
+# docker-compose loaded by pytest-docker
 #
 version: '3'
 services:

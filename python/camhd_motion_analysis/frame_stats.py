@@ -16,7 +16,7 @@ def frame_stats( path, frame,
                 lazycache = "http://cache.camhd.science/v1/org/oceanobservatories/rawdata/files" ):
 
     fips_path = Path(__file__).resolve().parent.parent.parent
-    fips_path = fips_path / "fips"
+    fips_path = fips_path / "cpp/fips"
 
     if not fips_path.is_file():
         logging.fatal("Unable to find fips at %s" % fips_path)
@@ -32,7 +32,7 @@ def frame_stats( path, frame,
                             stderr=subprocess.PIPE,
                             encoding='utf8' )
 
-    print("Stderr: %s" % procout.stderr)
+    #print("Stderr: %s" % procout.stderr)
 
     # Trim any extra output from fips which has yellow formatting
     doc = re.sub('\x1b\[.*?m.*\x1b\[.*?m', '', procout.stdout)

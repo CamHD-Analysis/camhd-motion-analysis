@@ -10,6 +10,7 @@ import re
 
 import logging
 
+from decouple import config
 import pycamhd.lazycache as pycamhd
 
 import camhd_motion_analysis as ma
@@ -39,17 +40,17 @@ parser.add_argument('--output-file', dest='outfile', metavar='o', nargs='?',
                     help='File for output')
 
 parser.add_argument('--output-dir', dest='outdir', metavar='o', nargs='?',
-                    default=os.environ.get("OUTPUT_DIR","/output/CamHD_motion_metadata"),
+                    default=config("OUTPUT_DIR","/output/CamHD_motion_metadata"),
                     help='File for output')
 
 parser.add_argument('--dry-run', dest='dryrun', action='store_true', help='Dry run')
 
 parser.add_argument('--lazycache-url', dest='lazycache',
-                    default=os.environ.get("RQ_LAZYCACHE_URL", None),
+                    default=config("LAZYCACHE_URL", "http://lazycache:8080/v1/org/oceanobservatories/rawdata/files/"),
                     help='Lazycache URL to pass to jobs')
 
 parser.add_argument('--redis-url', dest='redis',
-                    default=os.environ.get("RQ_REDIS_URL", "redis://localhost:6379/"),
+                    default=config("REDIS_URL", "redis://redis:6379/"),
                     help='URL to Redis server')
 
 parser.add_argument('--log', metavar='log', nargs='?', default='WARNING',

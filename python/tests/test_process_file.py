@@ -12,8 +12,7 @@ def test_process_file_output_to_file():
 
     destination = "test_tmp/test_process_file_with_output.json"
 
-    result = process_file( mov_path, destination,
-                stop=20 )
+    result = process_file( mov_path, destination, stop=20 )
 
     ## Todo.  Check contents of file
-    check_json_file("test_tmp/test_process_file_with_output.json")
+    check_json_file(destination)

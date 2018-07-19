@@ -21,6 +21,8 @@ from minio.error import ResponseError,NoSuchBucket,NoSuchKey
 import camhd_motion_analysis as ma
 
 DEFAULT_STRIDE = 10
+DEFAULT_STOP = -1
+DEFAULT_START = -1
 
 parser = argparse.ArgumentParser(description='Run rq_job_injector on recent days')
 
@@ -39,19 +41,27 @@ parser.add_argument('--count', metavar='j', type=int, nargs='?',
                     help='')
 
 parser.add_argument('--stride', metavar='s', type=int, nargs='?',
-                    default=DEFAULT_STRIDE,
+                    default=config("FRAME_STRIDE",DEFAULT_STRIDE),
                     help='Stride for frame stats')
 
+parser.add_argument('--start', metavar='s', type=int, nargs='?',
+                    default=config("START_FRAME",DEFAULT_START),
+                    help='Frame to start at')
+
+parser.add_argument('--stop', metavar='s', type=int, nargs='?',
+                    default=config("STOP_FRAME",DEFAULT_STOP),
+                    help='Frame to stop at')
+
 parser.add_argument('--output-dir', dest='outdir', metavar='o', nargs='?',
-                    default=os.environ.get("OUTPUT_DIR","/output/CamHD_motion_metadata"),
+                    default=config("OUTPUT_DIR","/output/CamHD_motion_metadata"),
                     help='File for output')
 
 parser.add_argument('--lazycache-url', dest='lazycache',
-                    default=os.environ.get("RQ_LAZYCACHE_URL", None),
+                    default=config("LAZYCACHE_URL", "http://lazycache:8080/v1/org/oceanobservatories/rawdata/files/"),
                     help='Lazycache URL to pass to jobs')
 
 parser.add_argument('--redis-url', dest='redis',
-                    default=os.environ.get("RQ_REDIS_URL", "redis://localhost:6379/"),
+                    default=config("REDIS_URL", "redis://redis:6379/"),
                     help='URL to Redis server')
 
 
@@ -156,7 +166,7 @@ for single_date in daterange(start_date, datetime.now()):
                         lazycache_url=args.lazycache,
                         num_threads=args.threads,
                         stride=args.stride,
-                        start=-1,
-                        stop=-1,
+                        start=args.start,
+                        stop=args.stop,
                         timeout='24h',
     		            result_ttl=3600)
