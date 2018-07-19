@@ -22,8 +22,6 @@ services:
       - redis
       - lazycache
     environment:
-      RQ_REDIS_URL: redis://redis:6379/
-      RQ_LAZYCACHE_URL: http://lazycache:8080/v1/org/oceanobservatories/rawdata/files/
       DELAY_START:  5
 
   minio:

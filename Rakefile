@@ -1,23 +1,35 @@
 
-task :process_short do
-  sh "./fips run frame_stats -o CAMHDA301-20160101T000000Z_short.json --frame 5000 /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z.mov
-"
+### Deployment tasks
+require 'bundler'
+require 'fileutils'
+require 'date'
+
+namespace :cpp do
+
+  task :process_one do
+    sh "cpp/fips run frame_stats -o CAMHDA301-20160101T000000Z_short.json --frame 5000 /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z.mov
+  "
+  end
+
+  task :process_gpu do
+    sh "cpp/fips run frame_stats --gpu -o CAMHDA301-20160101T000000Z_gpu.json --start-at 5000 --stop-at 6000 --stride 10 /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z.mov
+  "
+  end
+
+  task :process_full do
+    sh "cpp/fips run frame_stats  -o CAMHDA301-20160101T000000Z.json --stride 10 /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z.mov
+  "
+  end
+
 end
 
-task :process_gpu do
-  sh "./fips run frame_stats --gpu -o CAMHDA301-20160101T000000Z_gpu.json --start-at 5000 --stop-at 6000 --stride 10 /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z.mov
-"
-end
+namespace :python do
 
-task :process do
-  sh "./fips run frame_stats  -o CAMHDA301-20160101T000000Z.json --stride 10 /RS03ASHS/PN03B/06-CAMHDA301/2016/01/01/CAMHDA301-20160101T000000Z.mov
-"
-end
+  task :process_short do
+    sh "python3 python/frame_stats.py  --start 5000 --stop 5050 --force --log INFO RS03ASHS/PN03B/06-CAMHDA301/2016/01/18/CAMHDA301-20160118T150000Z.mov"
+  end
 
-task :process_python do
-  sh "python3 python/frame_stats.py  --start 5000 --stop 5050 --force --log INFO RS03ASHS/PN03B/06-CAMHDA301/2016/01/18/CAMHDA301-20160118T150000Z.mov"
 end
-
 
 
 namespace :timelapse do
@@ -44,12 +56,6 @@ end
 
 
 
-### Deployment tasks
-
-require 'bundler'
-require 'dotenv'
-require 'fileutils'
-require 'date'
 
 PUBLIC_LAZYCACHE_URL = "https://cache.camhd.science/v1/org/oceanobservatories/rawdata/files/"
 LOCAL_LAZYCACHE_URL  = "http://lazycache:8080/v1/org/oceanobservatories/rawdata/files"
@@ -88,23 +94,11 @@ namespace :worker do
 
   namespace :prod do
 
-    task :git_check do
-      uncommitted = `git status --porcelain --untracked-files=no`
-
-      p uncommitted
-
-      branch = `git status --porcelain --branch --untracked-files=no`
-      p branch
-    end
-
     ## TODO.  Add warning if I have uncommited changes and/or
     ## I'm ahead of origin/master, since prod uses origin/master!
 
-    # Builds the "production" worker image.  This includes a pristine checkout of
-    # camhd_motion_analysis from github
-    task :build=> ["worker:prod:git_check", "worker:base:build", "deploy/Dockerfile_prod"] do
-
-
+    desc "Builds the \"production\" worker image.  Includes a pristine checkout of camhd_motion_analysis from github"
+    task :build=> ["worker:base:build", "deploy/Dockerfile_prod"] do
         sh "docker", "build", "--no-cache",
                       "--tag", "#{worker_image}:latest",
                       "--tag", "#{worker_image}:#{`git rev-parse --short HEAD`.chomp}",
@@ -112,92 +106,72 @@ namespace :worker do
                       "."
     end
 
-    task :run => :build do
-      env_file = 'conf/prod.env'
-      Dotenv.load(env_file)
-      sh "docker", "run", *%W{--rm
-                     --env-file #{env_file}
-                     --network lazycache
-                     --volume camhd_motion_metadata_by_nfs:/output/CamHD_motion_metadata
-                     #{worker_image_dockerhub} --log INFO }
-    end
-
+    desc "Push \"production\" image to Dockerhub"
     task :push => :build do
       sh "docker", "push", "#{worker_image}:latest"
     end
 
   end
 
+  task :test => "worker:test:build"
+  namespace :test do
+
+    desc "Builds a \"test\" docker image using a local copy of camhd_motion_analysis"
+    task :build => ["worker:base:build", "deploy/Dockerfile_test"] do
+
+      #Dotenv.load('test.env')
+      sh "docker", "build", "--tag", "#{worker_image}:test",
+              "--file", "deploy/Dockerfile_test", "."
+    end
+
+    desc "Builds a \"test\" docker image without cache"
+    task :force => ["worker:base:build", "deploy/Dockerfile_test"] do
+
+      #Dotenv.load('test.env')
+      sh "docker", "build", "--no-cache", "--tag", "#{worker_image}:test",
+              "--file", "deploy/Dockerfile_test", "."
+    end
+
+    desc "Pushes \"test\" docker image to Dockerhub"
+    task :push => [:build] do
+      sh "docker", "push", worker_image + ":test"
+    end
+
+  end
 
   task :base => "worker:base:build"
-
   namespace :base do
 
     args = %W{ --tag #{worker_image_base}:latest
                --tag #{worker_image_base}:#{`git rev-parse --short HEAD`.chomp}
                --file deploy/Dockerfile_base .  }
 
+    desc "Build #{worker_image_base} image"
     task :build => ["deploy/Dockerfile_base"] do
       sh "docker", "build", *args
     end
 
+    desc "Force-builds #{worker_image_base} image"
     task :force do
       sh "docker", "build", "--no-cache", *args
     end
   end
 
-
-  task :test => "worker:test:build"
-
-  namespace :test do
-
-    desc "Builds a test docker image using a local copy of camhd_motion_analysis"
-    task :build => ["worker:base:build", "deploy/Dockerfile_test"] do
-
-      Dotenv.load('test.env')
-      sh "docker", "build", "--tag", "#{worker_image}:test",
-              "--file", "deploy/Dockerfile_test", "."
-    end
-
-    task :run => :build do
-      sh "docker", "run",  *%W{run --rm
-                  --env-file test.env
-                  --volume /home/aaron/canine/camhd_analysis/CamHD_motion_metadata:/output/CamHD_motion_metadata
-                  #{worker_image_test}  --log INFO }
-    end
-
-
-    desc "Run the test image using the production configuration"
-    task :run_prod_env do
-      Dotenv.load('conf/prod.env')
-      sh "docker run --rm --env-file conf/prod.env "\
-                " --network lazycache" \
-                " --volume camhd_motion_metadata_by_nfs:/output/CamHD_motion_metadata "\
-                " camhd_motion_analysis_rq_worker:test --log INFO"
-    end
-
-    desc "Inject a job using the test client"
-    task :inject do
-      #" --lazycache-url http://lazycache_nocache:8080/v1/org/oceanobservatories/rawdata/files" \
-
-      Dotenv.load('conf/test.env')
-      sh "docker run --rm --env-file conf/test.env "\
-                " --entrypoint python3 "\
-                " --network lazycache" \
-                " --volume camhd_motion_metadata_by_nfs:/output/CamHD_motion_metadata" \
-                " camhd_motion_analysis_rq_worker:test"\
-                " /code/camhd_motion_analysis/python/rq_job_injector.py " \
-                " --log INFO" \
-                " --threads 16 " \
-                " --output-dir /output/CamHD_motion_metadata"\
-                " /RS03ASHS/PN03B/06-CAMHDA301/2016/02/01/"
-              end
-
-  end
-
-
 end
 
+
+namespace :local do
+
+  task :up do
+    sh "docker-compose up --renew-anon-volumes --build"
+  end
+
+  ## Assumes you've done "docker-compose up"
+  task :inject  do
+    sh "docker exec camhd-motion-analysis_camhd-worker_1 ./recent_injector.py  --days 1 --stop 100 --log INFO"
+  end
+
+end
 
 
   # ## Tasks specific to running on gcloud
@@ -330,16 +304,6 @@ end
   #
   # end
 
-namespace :local do
-
-  ## Assumes you've done "docker-compose up"
-  task :inject do
-    sh "docker exec camhd-motion-analysis_camhd-worker_1 ./recent_injector.py  --days 1 --log INFO"
-  end
-
-
-
-end
 
   #
   #

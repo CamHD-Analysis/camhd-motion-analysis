@@ -2,8 +2,8 @@ FROM amarburg/camhd-worker-base:latest
 MAINTAINER Aaron Marburg <amarburg@apl.washington.edu>
 
 ADD . /code/camhd-motion-analysis
-WORKDIR /code/camhd-motion-analysis
 
+WORKDIR /code/camhd-motion-analysis/cpp
 ENV VERBOSE 1
 RUN ./fips set config linux-make-unittest
 RUN ./fips build

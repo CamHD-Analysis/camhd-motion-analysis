@@ -1,13 +1,32 @@
 pipeline:
   ## Build a test docker image
-  build_docker:
-    image: docker:latest
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    commands:
-      - docker build -t amarburg/camhd-worker-base --file deploy/Dockerfile_base .
-      - docker build --no-cache -t amarburg/camhd-worker:latest -t amarburg/camhd-worker:${DRONE_REPO_OWNER}-latest -t amarburg/camhd-worker:${DRONE_REPO_OWNER}-${DRONE_COMMIT_SHA} --file deploy/Dockerfile_prod .
+  # build_docker:
+  #   image: docker:latest
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #   commands:
+  #     - docker build -t amarburg/camhd-worker-base --file deploy/Dockerfile_base .
+  #     - docker build --no-cache -t amarburg/camhd-worker:latest -t amarburg/camhd-worker:${DRONE_REPO_OWNER}-latest -t amarburg/camhd-worker:${DRONE_REPO_OWNER}-${DRONE_COMMIT_SHA} --file deploy/Dockerfile_prod .
 
+  build_base:
+    image: plugins/docker
+    dockerfile: deploy/Dockerfile_base
+    volumes:
+     - /var/run/docker.sock:/var/run/docker.sock
+    repo: amarburg/covis-worker-base
+    tags:
+      - latest
+
+  build_prod:
+    image: plugins/docker
+    dockerfile: deploy/Dockerfile_prod
+    volumes:
+     - /var/run/docker.sock:/var/run/docker.sock
+    repo: amarburg/covis-worker
+    tags:
+      - latest
+      - ${DRONE_REPO_OWNER}-latest
+      - ${DRONE_REPO_OWNER}-${DRONE_COMMIT_SHA}
   ## Need to run python tests in docker image.  How to do that with drone services versus pytest-docker
 
   slack:

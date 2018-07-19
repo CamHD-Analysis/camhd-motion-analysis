@@ -22,7 +22,7 @@ parser = argparse.ArgumentParser(description='CamHD RQ Worker.')
 parser.add_argument('queues', metavar='N', nargs='*', default='default',
                     help='RQ Queues to listen to')
 
-parser.add_argument('--redis-url', dest='redis', default=os.environ.get("RQ_REDIS_URL", "redis://localhost:6379/"),
+parser.add_argument('--redis-url', dest='redis', default=os.environ.get("RQ_REDIS_URL", "redis://redis:6379/"),
                     help='URL to Redis server')
 
 parser.add_argument('--log', metavar='log', nargs='?', default='WARNING',

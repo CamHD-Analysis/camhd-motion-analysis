@@ -4,7 +4,7 @@ MAINTAINER Aaron Marburg <amarburg@apl.washington.edu>
 WORKDIR /code
 RUN git clone https://github.com/CamHD-Analysis/camhd-motion-analysis.git
 
-WORKDIR /code/camhd-motion-analysis
+WORKDIR /code/camhd-motion-analysis/cpp
 RUN ./fips set config linux-make-release
 RUN ./fips build
 
