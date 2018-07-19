@@ -19,9 +19,12 @@ RUN echo 'export PATH=/opt/conda/bin:$PATH' > /etc/profile.d/conda.sh && \
     rm /tmp/miniconda.sh
 ENV PATH /opt/conda/bin:$PATH
 
-RUN conda install python=3.6 setuptools wheel pillow redis numpy dask cytoolz numpy cython
+## Install packages from conda
+RUN conda install python=3.6 setuptools wheel pillow numpy dask cytoolz cython
+
+## .. and the remainder from pip (after upgrading pip)
 RUN pip install --upgrade pip
-RUN pip install conan rq py-cpuinfo
+RUN pip install py-cpuinfo minio celery flower
 
 ## Resolve a bug in the current xenial (and yakkety?) package for Ceres
 RUN touch /usr/include/ceres/internal/config.h
@@ -32,5 +35,6 @@ RUN sed -i s/std::string\(\\\([a-zA-Z\ \\\"]*\\\)\)/\\\1/ /usr/include/curlpp/Op
 ## Install pycamhd
 WORKDIR /code
 RUN git clone https://github.com/CamHD-Analysis/pycamhd-lazycache.git
+
 WORKDIR /code/pycamhd-lazycache
 RUN pip install .

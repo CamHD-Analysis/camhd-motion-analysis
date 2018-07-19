@@ -163,12 +163,23 @@ end
 namespace :local do
 
   task :up do
-    sh "docker-compose up --renew-anon-volumes --build"
+    ## Renew anon volumes ensures the redis database
+    ## isn't persisted between test runs
+    sh "docker-compose up --renew-anon-volumes --build --remove-orphans"
   end
 
   ## Assumes you've done "docker-compose up"
-  task :inject  do
-    sh "docker exec camhd-motion-analysis_camhd-worker_1 ./recent_injector.py  --days 1 --stop 100 --log INFO"
+  ## Saves to minio
+  task :inject do
+    mov = "/RS03ASHS/PN03B/06-CAMHDA301/2018/07/08/CAMHDA301-20180708T151500.mov"
+    sh "docker exec camhd-motion-analysis_camhd-worker_1 python/apps/job_injector.py  " + \
+        "--stop 100 --log INFO " + \
+        mov
+  end
+
+  task :recent do
+    sh "docker exec camhd-motion-analysis_camhd-worker_1 python/apps/recent_injector.py  " + \
+        "--days 1 --stop 50 --log INFO " 
   end
 
 end

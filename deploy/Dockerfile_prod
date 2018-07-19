@@ -1,6 +1,8 @@
 FROM amarburg/camhd-worker-base:latest
 MAINTAINER Aaron Marburg <amarburg@apl.washington.edu>
 
+VOLUME /output/CamHD_motion_metadata
+
 WORKDIR /code
 RUN git clone https://github.com/CamHD-Analysis/camhd-motion-analysis.git
 
@@ -11,7 +13,11 @@ RUN ./fips build
 WORKDIR /code/camhd-motion-analysis/python
 RUN pip install -e .
 
-VOLUME /output/CamHD_motion_metadata
 
-ADD deploy/launch_worker.sh  /code/
-ENTRYPOINT ["/code/launch_worker.sh"]
+## Switch to non-root user "camhd"
+RUN groupadd -g 999 camhd && \
+    useradd -r -u 999 -g camhd camhd
+RUN chown -R camhd:camhd /code
+USER camhd
+
+CMD ["make", "worker"]

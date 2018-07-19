@@ -2,9 +2,6 @@
 
 import argparse
 
-from redis import Redis
-from rq import Queue
-
 import os.path
 import re
 
@@ -23,7 +20,7 @@ parser.add_argument('input', metavar='N', nargs='+',
                     help='Path to process')
 
 parser.add_argument('--threads', metavar='j', type=int, nargs='?', default=1,
-                    help='Number of threads to run with dask')
+                    help='Number of threads to run in worker')
 
 parser.add_argument('--start', type=int, nargs='?', default=1,
                     help='Frame to start')
@@ -35,23 +32,18 @@ parser.add_argument('--stride', metavar='s', type=int, nargs='?',
                     default=DEFAULT_STRIDE,
                     help='Stride for frame stats')
 
-parser.add_argument('--output-file', dest='outfile', metavar='o', nargs='?',
-                    default="output.json",
-                    help='File for output')
-
-parser.add_argument('--output-dir', dest='outdir', metavar='o', nargs='?',
-                    default=config("OUTPUT_DIR","/output/CamHD_motion_metadata"),
-                    help='File for output')
+parser.add_argument('--destination', dest='destination', metavar='o', nargs='?',
+                    default=config("DESTINATION","s3://minio:9000/camhd-motion-metadata"),
+                    help='Path for output')
 
 parser.add_argument('--dry-run', dest='dryrun', action='store_true', help='Dry run')
+
+parser.add_argument('--run-local', dest='runlocal', action='store_true',
+                        help='Run job locally, not with celery')
 
 parser.add_argument('--lazycache-url', dest='lazycache',
                     default=config("LAZYCACHE_URL", "http://lazycache:8080/v1/org/oceanobservatories/rawdata/files/"),
                     help='Lazycache URL to pass to jobs')
-
-parser.add_argument('--redis-url', dest='redis',
-                    default=config("REDIS_URL", "redis://redis:6379/"),
-                    help='URL to Redis server')
 
 parser.add_argument('--log', metavar='log', nargs='?', default='WARNING',
                     help='Logging level')
@@ -94,9 +86,8 @@ for f in args.input:
 if len(infiles) == 0:
     exit
 
-q = Queue(connection=Redis.from_url(args.redis))
 for infile in infiles:
-    outfile = os.path.splitext(args.outdir + infile)[0] + "_optical_flow.json"
+    outfile = os.path.splitext(args.destination + infile)[0] + "_optical_flow.json"
     logging.info("Processing %s, Saving results to %s" % (infile, outfile))
 
     if os.path.isfile(outfile):
@@ -106,13 +97,22 @@ for infile in infiles:
     if args.dryrun==True:
         continue
 
-    job = q.enqueue(ma.process_file,
-                    infile,
-                    outfile,
-                    lazycache_url=args.lazycache,
-                    num_threads=args.threads,
-                    stride=args.stride,
-                    start=args.start,
-                    stop=args.stop,
-                    timeout='24h',
-		            result_ttl=3600)
+    if args.runlocal:
+
+        job = ma.process_file( infile,
+                                outfile,
+                                lazycache_url=args.lazycache,
+                                num_threads=args.threads,
+                                stride=args.stride,
+                                start=args.start,
+                                stop=args.stop)
+
+    else:
+
+        job = ma.process_file.delay( infile,
+                                    outfile,
+                                    lazycache_url=args.lazycache,
+                                    num_threads=args.threads,
+                                    stride=args.stride,
+                                    start=args.start,
+                                    stop=args.stop)

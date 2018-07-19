@@ -3,9 +3,6 @@
 import argparse
 from datetime import datetime, timedelta
 
-from redis import Redis
-from rq import Queue
-
 import os.path
 import re
 
@@ -52,17 +49,13 @@ parser.add_argument('--stop', metavar='s', type=int, nargs='?',
                     default=config("STOP_FRAME",DEFAULT_STOP),
                     help='Frame to stop at')
 
-parser.add_argument('--output-dir', dest='outdir', metavar='o', nargs='?',
-                    default=config("OUTPUT_DIR","/output/CamHD_motion_metadata"),
-                    help='File for output')
+parser.add_argument('--destination', dest='destination', metavar='o', nargs='?',
+                    default=config("DESTINATION","s3://minio:9000/camhd-motion-metadata"),
+                    help='Path for output')
 
 parser.add_argument('--lazycache-url', dest='lazycache',
                     default=config("LAZYCACHE_URL", "http://lazycache:8080/v1/org/oceanobservatories/rawdata/files/"),
                     help='Lazycache URL to pass to jobs')
-
-parser.add_argument('--redis-url', dest='redis',
-                    default=config("REDIS_URL", "redis://redis:6379/"),
-                    help='URL to Redis server')
 
 
 args = parser.parse_args()
@@ -101,9 +94,6 @@ def daterange(start_date, end_date):
     for n in range(int ((timedelta(1) + end_date - start_date).days)):
         yield start_date + timedelta(n)
 
-q = Queue(connection=Redis.from_url(args.redis))
-
-
 num_queued = 0
 for single_date in daterange(start_date, datetime.now()):
     logging.info("Checking %s" % single_date.strftime("%Y-%m-%d"))
@@ -115,7 +105,7 @@ for single_date in daterange(start_date, datetime.now()):
         continue
 
     for infile in infiles:
-        destination = os.path.splitext(args.outdir + infile)[0] + "_optical_flow.json"
+        destination = os.path.splitext(args.destination + infile)[0] + "_optical_flow.json"
 
         ## Need to reduce DRY with process_file.py
 
@@ -156,18 +146,15 @@ for single_date in daterange(start_date, datetime.now()):
             logging.info("Reach maximum count of %d, stopping" % args.count)
             break
 
-        logging.info("Processing %s, Saving results to %s" % (infile, destination))
+        logging.info("Injecting job to process %s, Saving results to %s" % (infile, destination))
 
         if args.dryrun==True:
             continue
 
-        job = q.enqueue(ma.process_file,
-                        infile,
+        job = ma.process_file.delay( infile,
                         destination=destination,
                         lazycache_url=args.lazycache,
                         num_threads=args.threads,
                         stride=args.stride,
                         start=args.start,
-                        stop=args.stop,
-                        timeout='24h',
-    		            result_ttl=3600)
+                        stop=args.stop)

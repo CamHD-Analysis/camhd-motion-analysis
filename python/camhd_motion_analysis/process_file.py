@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import, unicode_literals
+from .celery import app
+
 import argparse
 import os.path
 import json
@@ -36,8 +39,10 @@ import time
 DEFAULT_STRIDE = 10
 DEFAULT_LAZYCACHE_HOST = "http://cache.camhd.science/v1/org/oceanobservatories/rawdata/files"
 
+@app.task
 def process_file( mov_path, destination=config('OUTPUT_DEST',"s3://minio/CamHD_motion_metadata/"),
-                num_threads=1, start = 1, stop =-1,
+                num_threads=1,
+                start = 1, stop =-1,
                 lazycache_url = DEFAULT_LAZYCACHE_HOST,
                 stride = DEFAULT_STRIDE ):
 

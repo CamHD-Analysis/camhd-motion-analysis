@@ -1,3 +1,5 @@
+from __future__ import absolute_import, unicode_literals
+from .celery import app
 
 import tempfile
 import subprocess
@@ -11,7 +13,7 @@ import os.path
 
 # frame_stats_path = "/home/aaron/workspace/CamHD_analysis/fips-deploy/camhd-motion-analysis/linux-make-debug/frame_stats",
 
-
+@app.task
 def frame_stats( path, frame,
                 lazycache = "http://cache.camhd.science/v1/org/oceanobservatories/rawdata/files" ):
 
