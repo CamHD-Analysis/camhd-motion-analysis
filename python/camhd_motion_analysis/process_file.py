@@ -108,7 +108,7 @@ def process_file( mov_path, destination=config('OUTPUT_DEST',"s3://minio/CamHD_m
 
             ## This should handle repeated slashes in path...
             split_path = re.split(r'/*', o.path.lstrip("/"))
-            split_path = filter(len, split_path)
+            split_path = list(filter(len, split_path))
 
             bucket = split_path[0]
             path = '/'.join(split_path[1:])
