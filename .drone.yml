@@ -8,15 +8,23 @@ pipeline:
   #     - docker build -t amarburg/camhd-worker-base --file deploy/Dockerfile_base .
   #     - docker build --no-cache -t amarburg/camhd-worker:latest -t amarburg/camhd-worker:${DRONE_REPO_OWNER}-latest -t amarburg/camhd-worker:${DRONE_REPO_OWNER}-${DRONE_COMMIT_SHA} --file deploy/Dockerfile_prod .
 
-  build_base:
-    image: plugins/docker
-    dockerfile: deploy/Dockerfile_base
+  build:
+    image: docker:latest
     volumes:
-     - /var/run/docker.sock:/var/run/docker.sock
-    repo: amarburg/camhd-worker-base
-    tags:
-      - latest
-    secrets: [ docker_username, docker_password ]
+      - /var/run/docker.sock:/var/run/docker.sock
+    commands:
+      - docker build -t amarburg/camhd-worker-base --file deploy/Dockerfile_base .
+      - docker build -t amarburg/camhd-worker:latest --file deploy/Dockerfile_prod .
+    when:
+      event: push
+      branch:
+        - master
+        - dev
+
+  worker:
+    image: amarburg/camhd-worker:latest
+    commands:
+      - ls
 
   build_prod:
     image: plugins/docker
