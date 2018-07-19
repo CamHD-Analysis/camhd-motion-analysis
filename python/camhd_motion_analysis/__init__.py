@@ -1,6 +1,6 @@
 #!usr/bin/env python
 
-#__all__ = ["frame_stats"]
+all__ = ["celery"]
 
 from .frame_stats import *
 from .process_file import *

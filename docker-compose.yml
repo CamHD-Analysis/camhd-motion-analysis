@@ -8,10 +8,11 @@ services:
     environment:
       LAZYCACHE_ALLOW_RAW_OUTPUT: 'true'
 
-  redis:
-    image: bitnami/redis:latest
+  rabbitmq:
+    image: bitnami/rabbitmq:latest
     environment:
-      ALLOW_EMPTY_PASSWORD: 'yes'
+      RABBITMQ_USER: user
+      RABBITMQ_PASSWORD: bitnami
 
   ## Build local version for testing
   camhd-worker:
@@ -19,10 +20,12 @@ services:
       context: ./
       dockerfile: deploy/Dockerfile_test
     depends_on:
-      - redis
+      - rabbitmq
+      - minio
       - lazycache
     environment:
-      DELAY_START:  5
+      # Long delay, rabbitmq can be slow to start
+      DELAY_START:  30
 
   minio:
     image: minio/minio

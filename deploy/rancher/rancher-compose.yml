@@ -1,8 +1,5 @@
 version: '2'
 services:
-  rq-dashboard:
-    scale: 1
-    start_on_create: true
 
   lazycache:
     start_on_create: true
@@ -20,7 +17,7 @@ services:
   camhd-worker:
     start_on_create: true
 
-  redis:
+  rabbitmq:
     scale: 1
     start_on_create: true
 
@@ -29,5 +26,9 @@ services:
     start_on_create: true
 
   camhd-injector:
+    scale: 1
+    start_on_create: true
+
+  flower:
     scale: 1
     start_on_create: true

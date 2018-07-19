@@ -2,12 +2,12 @@ version: '2'
 volumes:
   camhd-minio:
     driver_opts:
-      export: /mnt/zvol1/projects/camhd/minio
+      export: /mnt/zvol1/projects/camhd/dev/minio
       host: nas.san.apl.washington.edu
     driver: rancher-nfs
   camhd-dot-minio:
     driver_opts:
-      export: /mnt/zvol1/projects/camhd/dot-minio
+      export: /mnt/zvol1/projects/camhd/dev/dot-minio
       host: nas.san.apl.washington.edu
     driver: rancher-nfs
 
@@ -16,15 +16,6 @@ secrets:
     external: 'true'
 
 services:
-  rq-dashboard:
-    image: amarburg/rq-dashboard
-    ports:
-    - 9181:9181/tcp
-    command:
-    - -H
-    - redis
-    labels:
-      io.rancher.container.pull_image: always
 
   lazycache:
     image: amarburg/go-lazycache:latest
@@ -36,8 +27,7 @@ services:
       io.rancher.scheduler.global: 'true'
 
   camhd-worker:
-    image: amarburg/camhd-worker:latest
-    environment:
+    image: amarburg/camhd-worker:${ENVIRONMENT}
     labels:
       io.rancher.scheduler.affinity:host_label: labor=true
       io.rancher.container.pull_image: always
@@ -60,24 +50,32 @@ services:
       io.rancher.scheduler.affinity:host_label_soft: in314=true
 
 
-  redis:
-    image: bitnami/redis:latest
-    environment:
-      ALLOW_EMPTY_PASSWORD: 'yes'
+  rabbitmq:
+    image: bitnami/rabbitmq:latest
     labels:
       io.rancher.container.pull_image: always
 
   camhd-injector:
-    image: amarburg/camhd-worker:latest
+    image: amarburg/camhd-worker:${ENVIRONMENT}
     environment:
       OUTPUT_DIR: s3://minio:9000/camhd-motion-metadata/
     stdin_open: true
-    entrypoint:
-    - python3
+    entrypoint: "python3"
     tty: true
-    command: ["/code/camhd-motion-analysis/python/recent_injector.py", "--days", "120", "--log", "INFO", "--threads", "16"]
+    command: ["/code/camhd-motion-analysis/python/apps/recent_injector.py", "--days", "1", "--log", "INFO", "--threads", "16"]
     labels:
       io.rancher.scheduler.affinity:host_label: labor=true
       io.rancher.container.start_once: 'true'
       io.rancher.container.pull_image: always
       cron.schedule: 0 0 1 * * ?
+
+  flower:
+    image: amarburg/camhd-worker:${ENVIRONMENT}
+    environment:
+      CELERY_BROKER: amqp://user:bitnami@rabbitmq/
+    stdin_open: true
+    command: ["make", "flower"]
+    tty: true
+    labels:
+      io.rancher.container.pull_image: always
+      io.rancher.scheduler.affinity:host_label: labor=true

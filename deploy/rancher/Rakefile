@@ -2,9 +2,17 @@
 
 namespace :prod do
 
-  task :upgrade do
-    sh "rancher --debug up --stack camhd-analysis-prod -d --upgrade --prune"
+  task :up do
+    sh "ENVIRONMENT=prod rancher --debug up --stack camhd-analysis-prod -d --upgrade --prune"
   end
 
+end
+
+
+namespace :dev do
+
+  task :up do
+    sh "ENVIRONMENT=test rancher --debug up --stack camhd-analysis-dev -d --upgrade --prune"
+  end
 
 end
