@@ -100,6 +100,7 @@ namespace :worker do
     desc "Builds the \"production\" worker image.  Includes a pristine checkout of camhd_motion_analysis from github"
     task :build=> ["worker:base:build", "deploy/Dockerfile_prod"] do
         sh "docker", "build", "--no-cache",
+                      "--tag", "#{worker_image}:prod",
                       "--tag", "#{worker_image}:latest",
                       "--tag", "#{worker_image}:#{`git rev-parse --short HEAD`.chomp}",
                       "--file", "deploy/Dockerfile_prod",
@@ -108,6 +109,7 @@ namespace :worker do
 
     desc "Push \"production\" image to Dockerhub"
     task :push => :build do
+      sh "docker", "push", "#{worker_image}:prod"
       sh "docker", "push", "#{worker_image}:latest"
     end
 
@@ -179,7 +181,7 @@ namespace :local do
 
   task :recent do
     sh "docker exec camhd-motion-analysis_camhd-worker_1 python/apps/recent_injector.py  " + \
-        "--days 1 --stop 50 --log INFO " 
+        "--days 1 --stop 50 --log INFO "
   end
 
 end
