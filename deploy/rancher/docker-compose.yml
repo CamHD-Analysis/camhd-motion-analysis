@@ -2,12 +2,12 @@ version: '2'
 volumes:
   camhd-minio:
     driver_opts:
-      export: /mnt/zvol1/projects/camhd/dev/minio
+      export: /mnt/zvol1/projects/camhd/${ENVIRONMENT}/minio
       host: nas.san.apl.washington.edu
     driver: rancher-nfs
   camhd-dot-minio:
     driver_opts:
-      export: /mnt/zvol1/projects/camhd/dev/dot-minio
+      export: /mnt/zvol1/projects/camhd/${ENVIRONMENT}/dot-minio
       host: nas.san.apl.washington.edu
     driver: rancher-nfs
 
@@ -49,7 +49,6 @@ services:
       io.rancher.container.pull_image: always
       io.rancher.scheduler.affinity:host_label_soft: in314=true
 
-
   rabbitmq:
     image: bitnami/rabbitmq:latest
     labels:
@@ -62,9 +61,8 @@ services:
     stdin_open: true
     entrypoint: "python3"
     tty: true
-    command: ["/code/camhd-motion-analysis/python/apps/recent_injector.py", "--days", "1", "--log", "INFO", "--threads", "16"]
+    command: ["/code/camhd-motion-analysis/python/apps/recent_injector.py", "--days", "30", "--log", "INFO", "--threads", "16"]
     labels:
-      io.rancher.scheduler.affinity:host_label: labor=true
       io.rancher.container.start_once: 'true'
       io.rancher.container.pull_image: always
       cron.schedule: 0 0 1 * * ?
@@ -78,4 +76,13 @@ services:
     tty: true
     labels:
       io.rancher.container.pull_image: always
-      io.rancher.scheduler.affinity:host_label: labor=true
+
+  flower-lb:
+    image: rancher/lb-service-haproxy:v0.9.1
+    ports:
+    - 5556:5556/tcp
+    labels:
+      io.rancher.scheduler.affinity:host_label: public_services=true
+      io.rancher.container.agent.role: environmentAdmin,agent
+      io.rancher.container.agent_service.drain_provider: 'true'
+      io.rancher.container.create_agent: 'true'
