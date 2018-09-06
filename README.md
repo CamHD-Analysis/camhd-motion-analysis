@@ -1,3 +1,3 @@
-# camhd_motion_tracking
+# camhd-motion-analysis
 
 Better documentation TBD.
