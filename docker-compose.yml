@@ -1,5 +1,8 @@
 #
-# docker-compose runs a local one-worker cluster.   Good for testing
+# docker-compose runs a local one-worker cluster for testing
+#
+# Then you can:
+#   docker-compose exec camhd-worker apps/recent_injector.py ....
 #
 version: '3'
 services:
