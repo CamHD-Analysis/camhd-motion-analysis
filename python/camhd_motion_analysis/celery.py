@@ -4,7 +4,6 @@ from decouple import config
 
 app = Celery('covis_worker',
              broker=config('CELERY_BROKER', default='amqp://user:bitnami@rabbitmq'),
-
              backend=config('CELERY_BACKEND', default='rpc://'),
              include=['camhd_motion_analysis.process_file', 'camhd_motion_analysis.frame_stats'])
 
