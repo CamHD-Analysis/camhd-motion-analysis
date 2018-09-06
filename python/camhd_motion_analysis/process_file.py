@@ -21,7 +21,7 @@ from decouple import config
 from urllib.parse import urlparse
 
 from minio import Minio
-from minio.error import ResponseError
+from minio.error import ResponseError, NoSuchKey
 
 # import pycamhd.lazycache as pycamhd
 #
@@ -40,16 +40,58 @@ DEFAULT_STRIDE = 10
 DEFAULT_LAZYCACHE_HOST = "http://cache.camhd.science/v1/org/oceanobservatories/rawdata/files"
 
 @app.task
-def process_file( mov_path, destination=config('OUTPUT_DEST',"s3://minio/CamHD_motion_metadata/"),
+def process_file( mov_path,
+                destination=config('OUTPUT_DEST',"s3://minio/CamHD_motion_metadata/"),
                 num_threads=1,
                 start = 1, stop =-1,
                 lazycache_url = DEFAULT_LAZYCACHE_HOST,
-                stride = DEFAULT_STRIDE ):
+                stride = DEFAULT_STRIDE,
+                force=False ):
 
     startTime = datetime.now()
 
     logging.info('Using Lazycache at %s' % lazycache_url)
     logging.info("Processing %s" % mov_path)
+
+    ## Check for existing file
+    if destination:
+
+        o = urlparse(destination)
+
+        if o.scheme == 's3' or o.scheme=="http" or o.scheme=="https":
+            logging.info("Saving to S3 location %s" % destination)
+
+            client = Minio(o.netloc,
+                            access_key=config('S3_ACCESS_KEY','camhd'),
+                            secret_key=config('S3_SECRET_KEY','camhdcamhd'),
+                            secure=False)
+
+            # TODO: Copied from below, reduce DRY
+            split_path = re.split(r'/+', o.path.lstrip("/"))
+            split_path = list(filter(len, split_path))
+
+            bucket = split_path[0]
+            path = '/'.join(split_path[1:])
+
+            logging.info("Checking in bucket %s for %s" % (bucket,path))
+
+            try:
+                client.stat_object(bucket,path)
+
+                logging.warning("Object exists, not overwriting...")
+                return "{}"
+            except NoSuchKey as err:
+                # TODO.  Check for error responses
+                logging.debug("Key doesn't exist, proceeding with processing!")
+                pass
+
+        else:
+            # Assume it's a path
+
+            if os.path.exists( o.path ):
+                logging.warning("Output destination %s exists, not overwriting" % o.path )
+                return "{}"
+
 
     if stop < 0:
         logging.info("Querying lazycache at %s for movie length" % lazycache_url )

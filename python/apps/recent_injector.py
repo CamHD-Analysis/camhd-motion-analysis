@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+# Sample execution:
+#  python/apps/recent_injector.py --days 30 --log INFO --threads 16
+
+
 import argparse
 from datetime import datetime, timedelta
 
@@ -124,6 +128,8 @@ for single_date in daterange(start_date, datetime.now()):
 
             bucket = split_path[0]
             path = '/'.join(split_path[1:])
+
+            logging.debug("   bucket: %s,   path: %s" % (bucket,path))
 
             try:
                 client.stat_object(bucket,path)
